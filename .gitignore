@@ -1,0 +1,13 @@
+*.class
+*.log
+*.jar
+*.iws
+
+hs_err_pid*
+
+.gradle
+build/
+
+!gradle-wrapper.jar
+
+.idea/

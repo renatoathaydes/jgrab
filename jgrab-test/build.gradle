@@ -1,0 +1,24 @@
+group 'com.athaydes.jgrab'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile project( ':jgrab-api' )
+    runtime project( ':jgrab-runner' )
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+test {
+    def cp = configurations.runtime*.absolutePath.join( File.pathSeparator )
+    systemProperty 'tests.classpath', cp
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+    }
+}
