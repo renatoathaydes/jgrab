@@ -1,6 +1,11 @@
 package com.athaydes.jgrab.runner;
 
+import com.athaydes.jgrab.JGrab;
+
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
@@ -9,12 +14,6 @@ import java.util.concurrent.TimeUnit;
  */
 public class JGrabRunner {
 
-    private static String[] javaLocations() {
-        return new String[]{
-                System.getenv( "JAVA_HOME" ),
-                System.getProperty( "java.home" )
-        };
-    }
 
     private static JGrabOptions parseOptions( String[] args ) {
         if ( args.length == 0 ) {
@@ -36,57 +35,63 @@ public class JGrabRunner {
         throw new RuntimeException( reason + "\n\nUsage: jgrab (-e <java_source>) | java_file" );
     }
 
-    private static File getJava() {
-        File java = null;
-
-        for (String javaHome : javaLocations()) {
-            File candidateJava = new File( javaHome, "/bin/java" );
-
-            if ( candidateJava.isFile() ) {
-                java = candidateJava;
-                break;
-            }
-        }
-
-        if ( java == null ) {
-            throw new RuntimeException( "Cannot locate Java, tried locations: " + Arrays.toString( javaLocations() ) );
-        }
-
-        return java;
-    }
-
-    private static void run( File java, String classpath, JGrabOptions options ) throws Exception {
+    private static void run( JavaInitializer.JavaInfo javaInfo,
+                             JGrabOptions options ) throws Exception {
         if ( options.jGrabRunnable == JGrabRunnable.JAVA_SOURCE_CODE ) {
             throw new RuntimeException( "java_source not supported yet" );
         }
 
-        if ( classpath == null || classpath.trim().isEmpty() ) {
-            throw new RuntimeException( "classpath was not provided" );
-        }
+        File selfJar = JarHandler.getJarOf( JGrabAnnotationProcessor.class ).orElseThrow( () ->
+                new RuntimeException( "Unable to locate self jar, JGrab can only run from a jar file!" ) );
 
-        System.out.println( "JGrab running " + options.arg + " with cp = " + classpath );
+        File jgrabApiJar = JarHandler.getJarOf( JGrab.class ).orElseThrow( () ->
+                new RuntimeException( "Unable to locate JGrab jar, please add the jgrab-api jar to the classpath!" ) );
 
-        Process process = new ProcessBuilder().command(
-                java.getAbsolutePath(), "-cp", classpath, options.arg
-        ).inheritIO().start();
+        String cp = String.join( File.pathSeparator, Arrays.asList(
+                selfJar.getAbsolutePath(),
+                jgrabApiJar.getAbsolutePath() ) );
 
-        boolean ok = process.waitFor( 3, TimeUnit.SECONDS );
+        Path tempDir = getTempDir();
+
+        ProcessBuilder processBuilder = new ProcessBuilder().command(
+                javaInfo.javac.getAbsolutePath(),
+                "-cp", cp,
+                options.arg
+        ).inheritIO();
+
+        processBuilder.environment().put( JGrabAnnotationProcessor.JGRAB_TEMP_DIR_ENV_VAR, tempDir.toString() );
+
+        Process process = processBuilder.start();
+
+        boolean ok = process.waitFor( 5, TimeUnit.SECONDS );
 
         if ( !ok ) {
             process.destroyForcibly();
-            throw new RuntimeException( "Process timeout" );
+            throw new RuntimeException( "javac process timeout" );
         }
 
-        System.out.println( "Process exited with value " + process.exitValue() );
+        int exitCode = process.exitValue();
+
+        if ( exitCode != 0 ) {
+            throw new RuntimeException( "Error compiling Java code, see the process output for details." );
+        }
+    }
+
+    private static Path getTempDir() {
+        try {
+            return Files.createTempDirectory( "jgrab" );
+        } catch ( IOException e ) {
+            throw new RuntimeException( "Unable to create a temp dir for JGrab resources! Cannot run JGrab." );
+        }
+
     }
 
     public static void main( String[] args ) {
         JGrabOptions options = parseOptions( args );
-        File java = getJava();
-        String cp = System.getProperty( "tests.classpath" );
+        JavaInitializer.JavaInfo javaInfo = JavaInitializer.getJavaInfo();
 
         try {
-            run( java, cp, options );
+            run( javaInfo, options );
         } catch ( Exception e ) {
             System.err.println( "ERROR: " + e.toString() );
         }
