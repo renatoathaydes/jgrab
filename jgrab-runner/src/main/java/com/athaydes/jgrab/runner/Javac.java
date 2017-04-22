@@ -46,7 +46,7 @@ class Javac {
         int exitCode = processHandler.run( Duration.ofSeconds( 60 ) );
 
         if ( exitCode != 0 ) {
-            throw new RuntimeException( "Error compiling Java code, see the process output for details." );
+            throw new RuntimeException( "Error compiling Java code" );
         }
     }
 

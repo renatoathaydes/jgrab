@@ -63,28 +63,55 @@ class ProcessHandler {
         Process process = processBuilder.start();
 
         Future<String> sysout = inheritSysout ?
-                CompletableFuture.supplyAsync( () -> "Sysout was consumed" ) :
+                CompletableFuture.supplyAsync( () -> "<Sysout was already consumed>" ) :
                 copyStream( process.getInputStream() );
-
-        Future<String> syserr = copyStream( process.getErrorStream() );
 
         if ( inheritSysout ) {
             consumeStream( process.getInputStream(), System.out );
         }
 
-        boolean ok = timeout == null ?
-                process.waitFor() == 0 :
-                process.waitFor( timeout.toMillis(), TimeUnit.MILLISECONDS );
+        Future<String> syserr = copyStream( process.getErrorStream() );
 
-        Logger.logPhase( name + " sysout" );
-        Logger.log( sysout.get() );
-        Logger.logPhase( name + " syserr" );
-        Logger.log( syserr.get() );
-        Logger.logPhase( name + " exit code = " + process.exitValue() );
+        boolean ok, processTimedOut;
+
+        if ( timeout == null ) {
+            process.waitFor();
+            ok = process.exitValue() == 0;
+            processTimedOut = false;
+        } else {
+            processTimedOut = !process.waitFor( timeout.toMillis(), TimeUnit.MILLISECONDS );
+            ok = !processTimedOut && process.exitValue() == 0;
+        }
+
+        if ( !processTimedOut ) try {
+            Logger.logPhase( name + " sysout" );
+            Logger.log( sysout.get( 0, TimeUnit.MILLISECONDS ) );
+        } catch ( Exception e ) {
+            Logger.error( "Unable to log sysout for " + name + ": " + e );
+        }
+
+        if ( !processTimedOut ) try {
+            Logger.logPhase( name + " syserr" );
+            Logger.log( syserr.get( 0, TimeUnit.MILLISECONDS ) );
+        } catch ( Exception e ) {
+            Logger.error( "Unable to log syserr for " + name + ": " + e );
+        }
+
+        if ( !processTimedOut ) {
+            Logger.logPhase( name + " exit code = " + process.exitValue() );
+        }
 
         if ( !ok ) {
-            process.destroyForcibly();
-            throw new RuntimeException( name + " process timeout" );
+            if ( processTimedOut ) {
+                Logger.error( name + " process timed out, destroying it forcibly" );
+                process.destroyForcibly();
+            }
+
+            try {
+                Logger.error( syserr.get( 0, TimeUnit.MILLISECONDS ) );
+            } catch ( Exception e ) {
+                Logger.error( "Unable to log syserr for " + name + ": " + e );
+            }
         }
 
         return process.exitValue();

@@ -73,7 +73,7 @@ public class JGrabRunner {
         try {
             run( javaInfo, options );
         } catch ( Exception e ) {
-            Logger.log( "ERROR: " + e.toString() );
+            Logger.error( e.toString() );
         }
     }
 

@@ -17,4 +17,7 @@ public class Logger {
         if ( enabled ) System.err.println( XXX + " " + phase + " " + XXX );
     }
 
+    public static void error( String errorMessage ) {
+        System.err.println( "ERROR: " + errorMessage );
+    }
 }

@@ -57,7 +57,7 @@ class JavaRunner {
 
         if ( exitCode != 0 ) {
             throw new RuntimeException( "Java process exited with non-zero exit code: " +
-                    exitCode + ". See the process output for details." );
+                    exitCode );
         }
     }
 
