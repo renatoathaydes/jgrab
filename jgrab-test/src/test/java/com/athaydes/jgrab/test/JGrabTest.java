@@ -22,7 +22,11 @@ public class JGrabTest {
         System.out.println( "Test classpath: " + cp );
         String runnableClass = getClass().getResource( "/RunnableClass.java" ).getFile();
 
-        Process process = new ProcessBuilder().command( java.getAbsolutePath(), "-cp", cp, "com.athaydes.jgrab.runner.JGrabRunner", runnableClass )
+        Process process = new ProcessBuilder()
+                .command( java.getAbsolutePath(),
+                        "-cp", cp,
+                        "com.athaydes.jgrab.runner.JGrabRunner",
+                        runnableClass )
                 .start();
 
         Future<String> output = copyStream( process.getInputStream() );
@@ -41,7 +45,11 @@ public class JGrabTest {
         String processOutput = output.get( 5, TimeUnit.SECONDS );
 
         assertEquals( "error output: " + errorOutput.get( 1, TimeUnit.SECONDS ),
-                "Hello interface com.athaydes.osgiaas.cli.core.CommandRunner\n", processOutput );
+                "Hello interface com.athaydes.osgiaas.cli.core.CommandRunner\n" +
+                        "Privyet interface com.athaydes.osgiaas.cli.CommandCompleter\n" +
+                        "Tja class com.athaydes.osgiaas.api.ansi.Ansi\n" +
+                        "Hi interface org.apache.felix.shell.Command\n" +
+                        "Ola class jline.console.ConsoleReader\n", processOutput );
     }
 
     private static Future<String> copyStream( InputStream input ) {
