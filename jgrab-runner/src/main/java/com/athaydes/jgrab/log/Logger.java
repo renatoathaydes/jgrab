@@ -7,12 +7,14 @@ public class Logger {
 
     private static final String XXX = "--------------";
 
+    private static boolean enabled = System.getProperty( "jgrab.debug" ) != null;
+
     public static void log( String message ) {
-        System.err.println( message );
+        if ( enabled ) System.err.println( message );
     }
 
     public static void logPhase( String phase ) {
-        System.err.println( XXX + " " + phase + " " + XXX );
+        if ( enabled ) System.err.println( XXX + " " + phase + " " + XXX );
     }
 
 }
