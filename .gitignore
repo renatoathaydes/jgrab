@@ -2,11 +2,14 @@
 *.log
 *.jar
 *.iws
+*.iml
+*.ipr
 
 hs_err_pid*
 
 .gradle
 build/
+/out/
 
 !gradle-wrapper.jar
 
