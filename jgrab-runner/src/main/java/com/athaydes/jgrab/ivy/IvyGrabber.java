@@ -1,6 +1,7 @@
 package com.athaydes.jgrab.ivy;
 
-import com.athaydes.jgrab.JGrab;
+import com.athaydes.jgrab.Dependency;
+import com.athaydes.jgrab.log.Logger;
 import com.athaydes.jgrab.runner.Grabber;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.report.ArtifactDownloadReport;
@@ -19,28 +20,27 @@ public class IvyGrabber implements Grabber {
     private final IvyFactory ivyFactory = new IvyFactory();
 
     @Override
-    public void grab( Collection<JGrab> grabs, File dir ) {
+    public void grab( Collection<Dependency> toGrab, File dir ) {
 
         Ivy ivy = null;
         try {
             ivy = getIvy();
         } catch ( Exception e ) {
-            System.err.println( "ERROR Getting IVy: " + e );
-            e.printStackTrace();
+            Logger.log( "ERROR getting Ivy: " + e );
         }
 
         if ( ivy == null ) {
-            System.err.println( "IVY IS NULL" );
+            Logger.log( "Unable to get Ivy instance" );
             return;
         }
 
-        for (JGrab grab : grabs) {
-            System.err.println( "Grabbing " + grab );
+        for (Dependency grab : toGrab) {
+            Logger.log( "Grabbing " + grab );
             try {
                 ResolveReport resolveReport = new IvyResolver( ivy )
                         .includeTransitiveDependencies( true )
                         .downloadJarOnly( true )
-                        .resolve( grab.group(), grab.module(), grab.version() );
+                        .resolve( grab.group, grab.module, grab.version );
                 copyDependencies( resolveReport, dir );
             } catch ( RuntimeException | IOException e ) {
                 e.printStackTrace();

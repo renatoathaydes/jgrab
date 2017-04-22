@@ -1,2 +1,2 @@
 rootProject.name = 'jgrab'
-include 'jgrab-runner', 'jgrab-api', 'jgrab-test'
+include 'jgrab-runner', 'jgrab-test'

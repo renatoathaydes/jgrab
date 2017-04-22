@@ -7,27 +7,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.athaydes.jgrab.processor.JGrabAnnotationProcessor.JGRAB_LIB_DIR;
-import static com.athaydes.jgrab.processor.JGrabAnnotationProcessor.JGRAB_TEMP_DIR_ENV_VAR;
-import static java.util.Collections.singletonList;
-
 /**
  * The javac process runner.
  */
 class Javac {
 
+    private static final String JGRAB_TEMP_DIR_ENV_VAR = "jgrab.temp.dir";
+    static final String JGRAB_LIB_DIR = "jgrab-libs";
     static final String CLASSES_DIR = "jgrab-classes";
+
 
     static void compile( Path tempDir,
                          JavaInitializer.JavaInfo javaInfo,
-                         File toCompile,
-                         boolean useJGrabProcessor ) throws Exception {
+                         File toCompile ) throws Exception {
 
-        List<String> cpEntries = new ArrayList<>( useJGrabProcessor ?
-                JarHandler.jgrabRunnerJars().stream()
-                        .map( File::getAbsolutePath )
-                        .collect( Collectors.toList() ) :
-                singletonList( JarHandler.jgrabApiJar().getAbsolutePath() ) );
+        List<String> cpEntries = new ArrayList<>( JarHandler.jgrabRunnerJars().stream()
+                .map( File::getAbsolutePath )
+                .collect( Collectors.toList() ) );
 
         cpEntries.add( JGRAB_LIB_DIR + File.separator + "*" );
 

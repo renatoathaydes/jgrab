@@ -12,8 +12,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.athaydes.jgrab.processor.JGrabAnnotationProcessor.JGRAB_LIB_DIR;
-
 /**
  * The java process runner.
  */
@@ -29,14 +27,14 @@ class JavaRunner {
 
         cpEntries.add( Javac.CLASSES_DIR );
 
-        File libDir = new File( tempDir.toFile(), JGRAB_LIB_DIR );
+        File libDir = new File( tempDir.toFile(), Javac.JGRAB_LIB_DIR );
 
         if ( libDir.isDirectory() ) {
             List<String> libs = JarHandler.allJarsIn( libDir.toPath() ).stream()
                     .map( File::getName )
                     .collect( Collectors.toList() );
             Logger.log( "java libs: " + libs );
-            cpEntries.add( JGRAB_LIB_DIR + File.separator + "*" );
+            cpEntries.add( Javac.JGRAB_LIB_DIR + File.separator + "*" );
         }
 
         String cp = String.join( File.pathSeparator, cpEntries );

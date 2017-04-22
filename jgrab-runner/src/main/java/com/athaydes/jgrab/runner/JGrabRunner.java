@@ -1,12 +1,16 @@
 package com.athaydes.jgrab.runner;
 
+import com.athaydes.jgrab.Dependency;
+import com.athaydes.jgrab.ivy.IvyGrabber;
 import com.athaydes.jgrab.log.Logger;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Runs a Java file, using the JGrab annotations to find its dependencies.
@@ -43,16 +47,14 @@ public class JGrabRunner {
 
         Logger.log( "JGrab using directory: " + tempDir );
 
-        try {
-            // run first time just to grab the dependencies...
-            // it is expected to fail if any dependency is used as the classpath won't include it
-            Javac.compile( tempDir, javaInfo, new File( options.arg ), true );
-        } catch ( RuntimeException e ) {
-            Logger.log( "Failed but it was expected! Trying a second time." );
-            // now the dependencies should be in place, we can run without the JGrab processor
-            Javac.compile( tempDir, javaInfo, new File( options.arg ), false );
+        List<Dependency> toGrab = Dependency.extractDependencies( Paths.get( options.arg ) );
+        if ( !toGrab.isEmpty() ) {
+            File libDir = new File( tempDir.toFile(), Javac.JGRAB_LIB_DIR );
+            libDir.mkdir();
+            new IvyGrabber().grab( toGrab, libDir );
         }
 
+        Javac.compile( tempDir, javaInfo, new File( options.arg ) );
         JavaRunner.run( tempDir, javaInfo );
     }
 

@@ -1,7 +1,5 @@
 package com.athaydes.jgrab.runner;
 
-import com.athaydes.jgrab.JGrab;
-import com.athaydes.jgrab.processor.JGrabAnnotationProcessor;
 import org.apache.ivy.Ivy;
 
 import java.io.File;
@@ -20,7 +18,7 @@ import java.util.Optional;
  */
 class JarHandler {
 
-    static Optional<File> getJarOf( Class<?> type ) {
+    private static Optional<File> getJarOf( Class<?> type ) {
         ClassLoader loader = type.getClassLoader();
         if ( loader instanceof URLClassLoader ) {
             URL[] jarUrls = ( ( URLClassLoader ) loader ).getURLs();
@@ -46,21 +44,14 @@ class JarHandler {
         return Optional.empty();
     }
 
-    static File jgrabApiJar() {
-        return JarHandler.getJarOf( JGrab.class ).orElseThrow( () ->
-                new RuntimeException( "Unable to locate JGrab jar, please add the jgrab-api jar to the classpath!" ) );
-    }
-
     static List<File> jgrabRunnerJars() {
-        File selfJar = JarHandler.getJarOf( JGrabAnnotationProcessor.class ).orElseThrow( () ->
+        File selfJar = JarHandler.getJarOf( JGrabRunner.class ).orElseThrow( () ->
                 new RuntimeException( "Unable to locate self jar, JGrab can only run from a jar file!" ) );
-
-        File jgrabApiJar = jgrabApiJar();
 
         File ivyJar = JarHandler.getJarOf( Ivy.class ).orElseThrow( () ->
                 new RuntimeException( "Unable to locate Ivy jar, please add the ivy jar to the classpath!" ) );
 
-        return Arrays.asList( selfJar, jgrabApiJar, ivyJar );
+        return Arrays.asList( selfJar, ivyJar );
     }
 
     static List<File> allJarsIn( Path tempDir ) {

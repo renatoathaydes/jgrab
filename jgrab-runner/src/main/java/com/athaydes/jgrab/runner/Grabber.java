@@ -1,6 +1,6 @@
 package com.athaydes.jgrab.runner;
 
-import com.athaydes.jgrab.JGrab;
+import com.athaydes.jgrab.Dependency;
 
 import java.io.File;
 import java.util.Collection;
@@ -14,9 +14,9 @@ public interface Grabber {
      * Grabs the requested dependencies, putting the jar files for all dependencies
      * inside the provided directory.
      *
-     * @param grabs dependencies to grab
-     * @param dir   directory to put all grabbed dependencies
+     * @param toGrab dependencies to grab
+     * @param dir    directory to put all grabbed dependencies
      */
-    void grab( Collection<JGrab> grabs, File dir );
+    void grab( Collection<Dependency> toGrab, File dir );
 
 }
