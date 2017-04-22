@@ -1,19 +1,17 @@
 package com.athaydes.jgrab.runner;
 
-import com.athaydes.jgrab.JGrab;
+import com.athaydes.jgrab.log.Logger;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 
 /**
- *
+ * Runs a Java file, using the JGrab annotations to find its dependencies.
  */
 public class JGrabRunner {
-
 
     private static JGrabOptions parseOptions( String[] args ) {
         if ( args.length == 0 ) {
@@ -41,40 +39,21 @@ public class JGrabRunner {
             throw new RuntimeException( "java_source not supported yet" );
         }
 
-        File selfJar = JarHandler.getJarOf( JGrabAnnotationProcessor.class ).orElseThrow( () ->
-                new RuntimeException( "Unable to locate self jar, JGrab can only run from a jar file!" ) );
-
-        File jgrabApiJar = JarHandler.getJarOf( JGrab.class ).orElseThrow( () ->
-                new RuntimeException( "Unable to locate JGrab jar, please add the jgrab-api jar to the classpath!" ) );
-
-        String cp = String.join( File.pathSeparator, Arrays.asList(
-                selfJar.getAbsolutePath(),
-                jgrabApiJar.getAbsolutePath() ) );
-
         Path tempDir = getTempDir();
 
-        ProcessBuilder processBuilder = new ProcessBuilder().command(
-                javaInfo.javac.getAbsolutePath(),
-                "-cp", cp,
-                options.arg
-        ).inheritIO();
+        Logger.log( "JGrab using directory: " + tempDir );
 
-        processBuilder.environment().put( JGrabAnnotationProcessor.JGRAB_TEMP_DIR_ENV_VAR, tempDir.toString() );
-
-        Process process = processBuilder.start();
-
-        boolean ok = process.waitFor( 5, TimeUnit.SECONDS );
-
-        if ( !ok ) {
-            process.destroyForcibly();
-            throw new RuntimeException( "javac process timeout" );
+        try {
+            // run first time just to grab the dependencies...
+            // it is expected to fail if any dependency is used as the classpath won't include it
+            Javac.compile( tempDir, javaInfo, new File( options.arg ), true );
+        } catch ( RuntimeException e ) {
+            Logger.log( "Failed but it was expected! Trying a second time." );
+            // now the dependencies should be in place, we can run without the JGrab processor
+            Javac.compile( tempDir, javaInfo, new File( options.arg ), false );
         }
 
-        int exitCode = process.exitValue();
-
-        if ( exitCode != 0 ) {
-            throw new RuntimeException( "Error compiling Java code, see the process output for details." );
-        }
+        JavaRunner.run( tempDir, javaInfo );
     }
 
     private static Path getTempDir() {
@@ -83,7 +62,6 @@ public class JGrabRunner {
         } catch ( IOException e ) {
             throw new RuntimeException( "Unable to create a temp dir for JGrab resources! Cannot run JGrab." );
         }
-
     }
 
     public static void main( String[] args ) {
@@ -93,7 +71,7 @@ public class JGrabRunner {
         try {
             run( javaInfo, options );
         } catch ( Exception e ) {
-            System.err.println( "ERROR: " + e.toString() );
+            Logger.log( "ERROR: " + e.toString() );
         }
     }
 

@@ -20,9 +20,22 @@ public class IvyGrabber implements Grabber {
 
     @Override
     public void grab( Collection<JGrab> grabs, File dir ) {
-        Ivy ivy = getIvy();
+
+        Ivy ivy = null;
+        try {
+            ivy = getIvy();
+        } catch ( Exception e ) {
+            System.err.println( "ERROR Getting IVy: " + e );
+            e.printStackTrace();
+        }
+
+        if ( ivy == null ) {
+            System.err.println( "IVY IS NULL" );
+            return;
+        }
 
         for (JGrab grab : grabs) {
+            System.err.println( "Grabbing " + grab );
             try {
                 ResolveReport resolveReport = new IvyResolver( ivy )
                         .includeTransitiveDependencies( true )
@@ -30,6 +43,7 @@ public class IvyGrabber implements Grabber {
                         .resolve( grab.group(), grab.module(), grab.version() );
                 copyDependencies( resolveReport, dir );
             } catch ( RuntimeException | IOException e ) {
+                e.printStackTrace();
                 System.err.println( e.toString() );
             }
         }

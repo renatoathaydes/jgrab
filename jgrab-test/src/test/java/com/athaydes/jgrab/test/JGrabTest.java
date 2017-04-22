@@ -28,7 +28,7 @@ public class JGrabTest {
         Future<String> output = copyStream( process.getInputStream() );
         Future<String> errorOutput = copyStream( process.getErrorStream() );
 
-        boolean ok = process.waitFor( 3, TimeUnit.SECONDS );
+        boolean ok = process.waitFor( 30, TimeUnit.SECONDS );
 
         if ( !ok ) {
             process.destroyForcibly();
@@ -36,11 +36,12 @@ public class JGrabTest {
         }
 
         System.out.println( "Process exited with value " + process.exitValue() );
+        System.out.println( errorOutput.get( 5, TimeUnit.SECONDS ) );
 
-        String processOutput = output.get( 1, TimeUnit.SECONDS );
+        String processOutput = output.get( 5, TimeUnit.SECONDS );
 
         assertEquals( "error output: " + errorOutput.get( 1, TimeUnit.SECONDS ),
-                "Hello world", processOutput );
+                "Hello interface com.athaydes.osgiaas.cli.core.CommandRunner\n", processOutput );
     }
 
     private static Future<String> copyStream( InputStream input ) {

@@ -1,0 +1,13 @@
+<ivysettings>
+    <settings defaultResolver="ivy-downloads"/>
+    <resolvers>
+        <chain name="ivy-downloads" returnFirst="true">
+            <filesystem name="ivyCache">
+                <ivy pattern="${user.home}/.ivy2/cache/[organisation]/[module]/ivy-[revision].xml"/>
+                <artifact
+                        pattern="${user.home}/.ivy2/cache/[organisation]/[module]/[type]s/[artifact]-[revision](-[classifier]).[ext]"/>
+            </filesystem>
+            ${REPOSITORIES}
+        </chain>
+    </resolvers>
+</ivysettings>
