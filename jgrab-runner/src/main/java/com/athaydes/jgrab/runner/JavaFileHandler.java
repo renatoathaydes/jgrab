@@ -29,6 +29,14 @@ class JavaFileHandler {
     private final List<String> lines;
 
     JavaFileHandler( Path filePath ) throws IOException {
+        if ( !filePath.toFile().exists() ) {
+            throw new JGrabError( "File does not exist: " + filePath );
+        }
+        if ( !filePath.toFile().isFile() ) {
+            throw new JGrabError( "Not a file: " + filePath + "!\n" +
+                    "JGrab can only run a single Java file or a Java snippet with the -e option." );
+        }
+
         this.lines = Files.readAllLines( filePath );
         this.className = extractClassName( lines, filePath );
         logger.debug( "Class name: {}", className );
