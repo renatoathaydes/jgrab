@@ -93,11 +93,7 @@ public class JGrabRunner {
                 logger.warn( "Problem running Java class", t );
             }
         }
-
-        //Javac.compile( tempDir, javaInfo, new File( options.arg ) );
-        //JavaRunner.run( tempDir, javaInfo );
     }
-
 
     private static Path getTempDir() {
         try {
