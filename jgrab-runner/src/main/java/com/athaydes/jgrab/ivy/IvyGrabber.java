@@ -1,11 +1,12 @@
 package com.athaydes.jgrab.ivy;
 
 import com.athaydes.jgrab.Dependency;
-import com.athaydes.jgrab.log.Logger;
 import com.athaydes.jgrab.runner.Grabber;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.report.ArtifactDownloadReport;
 import org.apache.ivy.core.report.ResolveReport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,6 +18,8 @@ import java.util.Collection;
  */
 public class IvyGrabber implements Grabber {
 
+    private static final Logger logger = LoggerFactory.getLogger( IvyGrabber.class );
+
     private final IvyFactory ivyFactory = new IvyFactory();
 
     @Override
@@ -26,16 +29,16 @@ public class IvyGrabber implements Grabber {
         try {
             ivy = getIvy();
         } catch ( Exception e ) {
-            Logger.log( "ERROR getting Ivy: " + e );
+            logger.error( "Error getting instance of Ivy", e );
         }
 
         if ( ivy == null ) {
-            Logger.log( "Unable to get Ivy instance" );
+            logger.warn( "Unable to get Ivy instance" );
             return;
         }
 
         for (Dependency grab : toGrab) {
-            Logger.log( "Grabbing " + grab );
+            logger.debug( "Grabbing {}", grab );
             try {
                 ResolveReport resolveReport = new IvyResolver( ivy )
                         .includeTransitiveDependencies( true )
