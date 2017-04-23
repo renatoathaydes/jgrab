@@ -12,7 +12,6 @@ repositories {
 dependencies {
     runtime project( ':jgrab-runner' )
     testCompile group: 'junit', name: 'junit', version: '4.12'
-    testRuntime 'org.slf4j:slf4j-simple:1.7.21'
 }
 
 test {

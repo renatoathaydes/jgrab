@@ -12,5 +12,17 @@ repositories {
 dependencies {
     compile 'org.apache.ivy:ivy:2.4.0'
     compile 'com.athaydes.osgiaas:osgiaas-javac:0.7'
+    compile 'org.slf4j:slf4j-simple:1.7.21'
     testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+task fatJar( type: Jar ) {
+    manifest {
+        attributes 'Implementation-Title': 'JGrab',
+                'Implementation-Version': version,
+                'Main-Class': 'com.athaydes.jgrab.runner.JGrabRunner'
+    }
+    baseName = project.name
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree( it ) } }
+    with jar
 }

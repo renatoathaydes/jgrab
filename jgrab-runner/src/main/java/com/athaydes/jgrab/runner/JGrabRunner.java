@@ -193,6 +193,10 @@ public class JGrabRunner {
     }
 
     public static void main( String[] args ) {
+        if ( System.getProperty( "org.slf4j.simpleLogger.defaultLogLevel" ) == null ) {
+            System.setProperty( "org.slf4j.simpleLogger.defaultLogLevel", "warn" );
+        }
+
         JGrabOptions options = parseOptions( args );
 
         try {
