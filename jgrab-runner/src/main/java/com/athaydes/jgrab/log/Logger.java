@@ -1,5 +1,7 @@
 package com.athaydes.jgrab.log;
 
+import java.io.PrintStream;
+
 /**
  * Internal logger.
  */
@@ -19,5 +21,9 @@ public class Logger {
 
     public static void error( String errorMessage ) {
         System.err.println( "ERROR: " + errorMessage );
+    }
+
+    public static PrintStream asPrintStream() {
+        return System.err;
     }
 }
