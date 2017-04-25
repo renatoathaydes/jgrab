@@ -1,0 +1,5 @@
+[package]
+
+name = "jgrab-client"
+version = "0.0.0"
+authors = [ "Renato Athaydes" ]
