@@ -4,6 +4,7 @@
 *.iws
 *.iml
 *.ipr
+*.lock
 
 hs_err_pid*
 

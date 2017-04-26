@@ -8,7 +8,7 @@ use std::str;
 fn main() {
     if let Ok(mut stream) = TcpStream::connect("127.0.0.1:5002") {
         let args: Vec<String> = env::args().collect();
-        let all_args: String = args[1..].join(" ") + "\n";
+        let all_args: String = args[1..].join(" ") + "\nJGRAB_END\n";
         stream.write(all_args.as_bytes()).unwrap();
 
         let mut client_buffer = [0u8; 1024];
@@ -19,7 +19,7 @@ fn main() {
                     if n == 0 {
                         break;
                     } else {
-                        stdout().write(&client_buffer).unwrap();
+                        stdout().write(&client_buffer[0..n]).unwrap();
                     }
                 }
                 Err(error) => panic!(error.to_string()),
