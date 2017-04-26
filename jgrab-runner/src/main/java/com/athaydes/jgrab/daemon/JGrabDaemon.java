@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 public class JGrabDaemon {
 
     private static final Logger logger = LoggerFactory.getLogger( JGrabDaemon.class );
-    public static final String STOP_OPTION = "--stop";
+    private static final String STOP_OPTION = "--stop";
 
     public static void start( Consumer<String[]> runArgs ) {
         new Thread( () -> {
@@ -29,7 +29,6 @@ public class JGrabDaemon {
                 return;
             }
 
-            socketServerLoop:
             while ( true ) {
                 try (
                         Socket clientSocket = serverSocket.accept();
@@ -57,10 +56,6 @@ public class JGrabDaemon {
                             if ( firstSpace > 0 ) {
                                 firstArg.append( inputLine.substring( 0, firstSpace ) );
                                 secondArg.append( inputLine.substring( firstSpace + 1 ) ).append( '\n' );
-                            } else if ( firstArg.substring( 0, Math.min( firstArg.length(), STOP_OPTION.length() ) )
-                                    .equals( STOP_OPTION ) ) {
-                                logger.info( "--stop option received, stopping JGrab Daemon" );
-                                break socketServerLoop;
                             } else {
                                 firstArg.append( inputLine );
                             }
@@ -79,8 +74,16 @@ public class JGrabDaemon {
                             new String[]{ arg0 } :
                             new String[]{ arg0, arg1 };
 
+
                     System.setOut( out );
                     System.setErr( out );
+
+                    if ( firstArg.substring( 0, Math.min( firstArg.length(), STOP_OPTION.length() ) )
+                            .equals( STOP_OPTION ) ) {
+                        logger.info( "--stop option received, stopping JGrab Daemon" );
+                        out.println( "JGrab Daemon stopped" );
+                        return;
+                    }
 
                     // run this synchronously, which means only one program can run per daemon at a time
                     runArgs.accept( args );

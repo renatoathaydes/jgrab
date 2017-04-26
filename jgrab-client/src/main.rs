@@ -26,6 +26,7 @@ fn main() {
             }
         }
     } else {
+        // TODO try to start the daemon
         println!("JGrab Error - couldn't connect to JGrab process...");
     }
 }
