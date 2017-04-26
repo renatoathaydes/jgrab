@@ -1,9 +1,18 @@
 package com.athaydes.jgrab;
 
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 /**
  * A single dependency on an external module.
  */
 public class Dependency {
+
+    private static final Pattern JGRAB_PATTERN = Pattern.compile(
+            "\\s*//\\s*#jgrab\\s+([a-zA-Z-_0-9:.]+)\\s*" );
 
     public final String group;
     public final String module;
@@ -15,7 +24,7 @@ public class Dependency {
         this.version = version;
     }
 
-    public static Dependency of( String declaration ) {
+    private static Dependency of( String declaration ) {
         String[] parts = declaration.split( ":" );
         if ( 3 < parts.length || parts.length < 2 ) {
             throw new RuntimeException( "Bad declaration (not of the form group:module[:version]): " +
@@ -23,6 +32,17 @@ public class Dependency {
         }
 
         return new Dependency( parts[ 0 ], parts[ 1 ], parts.length == 2 ? "latest" : parts[ 2 ] );
+    }
+
+    public static List<Dependency> parseDependencies( Stream<String> codeLines ) {
+        return codeLines.flatMap( line -> {
+            Matcher matcher = JGRAB_PATTERN.matcher( line );
+            if ( matcher.matches() ) {
+                return Stream.of( Dependency.of( matcher.group( 1 ) ) );
+            } else {
+                return Stream.empty();
+            }
+        } ).collect( Collectors.toList() );
     }
 
     @Override

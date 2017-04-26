@@ -1,6 +1,7 @@
 package com.athaydes.jgrab.runner;
 
 import com.athaydes.jgrab.Dependency;
+import com.athaydes.jgrab.daemon.JGrabDaemon;
 import com.athaydes.jgrab.ivy.IvyGrabber;
 import com.athaydes.osgiaas.api.env.ClassLoaderContext;
 import com.athaydes.osgiaas.javac.internal.DefaultClassLoaderContext;
@@ -16,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * Runs a Java file, using the JGrab annotations to find its dependencies.
@@ -31,6 +33,10 @@ public class JGrabRunner {
             return error( "No arguments provided" );
         }
         if ( args.length == 1 ) {
+            if ( args[ 0 ].equals( "--daemon" ) || args[ 0 ].equals( "-d" ) ) {
+                return new JGrabOptions( JGrabRunnable.START_DAEMON, "" );
+            }
+
             return new JGrabOptions( JGrabRunnable.JAVA_FILE, args[ 0 ] );
         }
         if ( args.length == 2 ) {
@@ -47,17 +53,25 @@ public class JGrabRunner {
     }
 
     private static void run( JGrabOptions options ) throws Exception {
-        if ( options.jGrabRunnable == JGrabRunnable.JAVA_SOURCE_CODE ) {
-            throw new JGrabError( "java_source not supported yet" );
+        switch ( options.jGrabRunnable ) {
+            case JAVA_FILE:
+                run( new FileJavaCode( Paths.get( options.arg ) ) );
+                break;
+            case JAVA_SOURCE_CODE:
+                run( new StringJavaCode( options.arg ) );
+                break;
+            case START_DAEMON:
+                JGrabDaemon.start( JGrabRunner::main );
+                break;
         }
+    }
 
+    private static void run( JavaCode javaCode ) {
         Path tempDir = getTempDir();
 
         logger.debug( "JGrab using directory: {}", tempDir );
 
-        JavaFileHandler javaFile = new JavaFileHandler( Paths.get( options.arg ) );
-
-        List<Dependency> toGrab = javaFile.extractDependencies();
+        List<Dependency> toGrab = javaCode.extractDependencies();
         logger.debug( "Dependencies to grab: {}", toGrab );
 
         File libDir = new File( tempDir.toFile(), JGRAB_LIB_DIR );
@@ -67,16 +81,41 @@ public class JGrabRunner {
             new IvyGrabber().grab( toGrab, libDir );
         }
 
-        String className = javaFile.getClassName();
         File[] libs = libDir.listFiles();
 
         ClassLoaderContext classLoaderContext = libs == null || libs.length == 0 ?
                 DefaultClassLoaderContext.INSTANCE :
                 new JGrabClassLoaderContext( libs );
 
+        if ( javaCode.isSnippet() ) {
+            runJavaSnippet( javaCode.getCode(), classLoaderContext );
+        } else {
+            runJavaClass( javaCode, classLoaderContext );
+        }
+    }
+
+    private static void runJavaSnippet( String snippet, ClassLoaderContext classLoaderContext ) {
+        logger.debug( "Running Java snippet" );
+
+        Callable<?> callable = new OsgiaasJavaCompilerService().compileJavaSnippet( snippet, classLoaderContext )
+                .orElseThrow( () -> new JGrabError( "Java code compilation failed" ) );
+
+        try {
+            Object result = callable.call();
+            if ( result != null ) {
+                System.out.println( result.toString() );
+            }
+        } catch ( Throwable t ) {
+            logger.warn( "Problem running Java snippet", t );
+        }
+    }
+
+    private static void runJavaClass( JavaCode javaCode, ClassLoaderContext classLoaderContext ) {
+        logger.debug( "Running Java class" );
+
         Class<Object> compiledClass = new OsgiaasJavaCompilerService()
-                .compileJavaClass( classLoaderContext, className, javaFile.getCode(), System.err )
-                .orElseThrow( () -> new RuntimeException( "Java file compilation failed" ) );
+                .compileJavaClass( classLoaderContext, javaCode.getClassName(), javaCode.getCode(), System.err )
+                .orElseThrow( () -> new JGrabError( "Java code compilation failed" ) );
 
         if ( Runnable.class.isAssignableFrom( compiledClass ) ) {
             try {
@@ -117,7 +156,7 @@ public class JGrabRunner {
 }
 
 enum JGrabRunnable {
-    JAVA_SOURCE_CODE, JAVA_FILE
+    JAVA_SOURCE_CODE, JAVA_FILE, START_DAEMON
 }
 
 class JGrabOptions {
