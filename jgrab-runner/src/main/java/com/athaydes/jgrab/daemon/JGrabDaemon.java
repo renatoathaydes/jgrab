@@ -44,7 +44,7 @@ public class JGrabDaemon {
 
                     while ( ( inputLine = in.readLine() ) != null ) {
                         inputLine = inputLine.trim();
-                        logger.info( "Got line: '" + inputLine + "'" );
+                        logger.debug( "Got line: '" + inputLine + "'" );
 
                         // first line is expected to be the currentDir
                         if ( currentDir == null ) {
@@ -83,7 +83,7 @@ public class JGrabDaemon {
                             new String[]{ arg0 } :
                             new String[]{ arg0, arg1 };
 
-
+                    System.setIn( clientSocket.getInputStream() );
                     System.setOut( out );
                     System.setErr( out );
 
@@ -99,6 +99,7 @@ public class JGrabDaemon {
                 } catch ( IOException e ) {
                     e.printStackTrace();
                 } finally {
+                    System.setIn( System.in );
                     System.setOut( System.out );
                     System.setErr( System.err );
                 }
