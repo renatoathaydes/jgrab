@@ -150,3 +150,9 @@ so it may take a while.
 However, it will run very fast after that! 
 
 
+### Options
+
+* `-d` `--deamon` starts the JGrab daemon.
+* `-e` expects a Java snippet as an argument. Use single-quotes to encapsulate the code, as shown in the examples. 
+* `--stop` stops the JGrab daemon.
+
