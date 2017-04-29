@@ -4,8 +4,10 @@ use std::io::Read;
 use std::io::Write;
 use std::env;
 use std::str;
-use std::path::Path;
-//use std::process::Command;
+use std::process::Command;
+use std::path::PathBuf;
+use std::thread::sleep;
+use std::time::Duration;
 
 fn main() {
     let max_retries: usize = 3;
@@ -45,7 +47,7 @@ fn send_message(socket_message: &[u8], max_retries: usize) {
                         stdout().write(&client_buffer[0..n]).unwrap();
                     }
                 }
-                Err(error) => panic!(error.to_string()),
+                Err(err) => error(&err.to_string())
             }
         }
     } else if max_retries > 0 {
@@ -58,9 +60,34 @@ fn send_message(socket_message: &[u8], max_retries: usize) {
 }
 
 fn start_daemon() {
-    // TODO try to start the daemon
-
     log("Starting daemon");
+
+    if let Some(user_home) = env::home_dir() {
+        let mut jgrab_jar: PathBuf = user_home;
+        jgrab_jar.push(".jgrab");
+        jgrab_jar.push("jgrab.jar");
+
+        if jgrab_jar.as_path().is_file() {
+            let cmd = Command::new("java")
+                .arg("-jar")
+                .arg(jgrab_jar.into_os_string().into_string().unwrap())
+                .arg("--daemon")
+                .spawn();
+
+            match cmd {
+                Ok(process) => {
+                    log(&format!("Daemon has been started, pid={}", process.id()));
+                    sleep(Duration::from_millis(500))
+                }
+                Err(err) => error(&err.to_string())
+            }
+        } else {
+            error("The JGrab jar is not installed! Please install it as explained \
+                   in https://github.com/renatoathaydes/jgrab");
+        }
+    } else {
+        error("user.home could not be found, making it impossible to start the JGrab Daemon");
+    }
 }
 
 fn log(message: &str) {
