@@ -52,16 +52,18 @@ public class JGrabRunner {
         throw new JGrabError( reason + "\n\nUsage: jgrab (-e <java_source>) | java_file" );
     }
 
-    private static void run( JGrabOptions options ) throws Exception {
+    private static void run( String currentDir, JGrabOptions options ) throws Exception {
         switch ( options.jGrabRunnable ) {
             case JAVA_FILE:
-                run( new FileJavaCode( Paths.get( options.arg ) ) );
+                Path rawPath = Paths.get( options.arg );
+                Path canonicalPath = rawPath.isAbsolute() ? rawPath : Paths.get( currentDir ).resolve( rawPath );
+                run( new FileJavaCode( canonicalPath ) );
                 break;
             case JAVA_SOURCE_CODE:
                 run( new StringJavaCode( options.arg ) );
                 break;
             case START_DAEMON:
-                JGrabDaemon.start( JGrabRunner::main );
+                JGrabDaemon.start( JGrabRunner::run );
                 break;
         }
     }
@@ -142,15 +144,19 @@ public class JGrabRunner {
         }
     }
 
-    public static void main( String[] args ) {
+    private static void run( String currentDir, String[] args ) {
         try {
             JGrabOptions options = parseOptions( args );
-            run( options );
+            run( currentDir, options );
         } catch ( JGrabError e ) {
             logger.error( e.getMessage() );
         } catch ( Exception e ) {
             logger.error( "Unable to run Java class", e );
         }
+    }
+
+    public static void main( String[] args ) {
+        run( System.getProperty( "user.dir" ), args );
     }
 
 }

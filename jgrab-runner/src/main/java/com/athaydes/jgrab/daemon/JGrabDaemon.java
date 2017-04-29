@@ -9,7 +9,7 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * JGrab daemon, a TCP socket server that runs in the background waiting for Java code to run.
@@ -19,7 +19,7 @@ public class JGrabDaemon {
     private static final Logger logger = LoggerFactory.getLogger( JGrabDaemon.class );
     private static final String STOP_OPTION = "--stop";
 
-    public static void start( Consumer<String[]> runArgs ) {
+    public static void start( BiConsumer<String, String[]> runArgs ) {
         new Thread( () -> {
             ServerSocket serverSocket;
             try {
@@ -37,6 +37,7 @@ public class JGrabDaemon {
                                 new InputStreamReader( clientSocket.getInputStream() ) );
                 ) {
                     String inputLine;
+                    String currentDir = null;
                     boolean isFirstArg = true;
                     StringBuilder firstArg = new StringBuilder( 64 );
                     StringBuilder secondArg = new StringBuilder( 512 );
@@ -44,9 +45,17 @@ public class JGrabDaemon {
                     while ( ( inputLine = in.readLine() ) != null ) {
                         inputLine = inputLine.trim();
                         logger.info( "Got line: '" + inputLine + "'" );
+
+                        // first line is expected to be the currentDir
+                        if ( currentDir == null ) {
+                            currentDir = inputLine;
+                            continue;
+                        }
+
                         if ( inputLine.isEmpty() ) {
                             continue;
                         }
+
                         if ( inputLine.equals( "JGRAB_END" ) ) {
                             break;
                         }
@@ -86,7 +95,7 @@ public class JGrabDaemon {
                     }
 
                     // run this synchronously, which means only one program can run per daemon at a time
-                    runArgs.accept( args );
+                    runArgs.accept( currentDir, args );
                 } catch ( IOException e ) {
                     e.printStackTrace();
                 } finally {
