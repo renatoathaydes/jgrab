@@ -16,6 +16,11 @@ Runs Java code without a build system, grabbing dependencies declared in the Jav
   The Rust client is also inspired by efforts from the Groovy community such as 
   [GroovyServ](https://kobo.github.io/groovyserv/).
 
+It is **NOT a goal** of this project:
+
+* to become a full build system.
+* to accept more than one Java file or snippet as input. That's what build systems are for.
+
 ## Running JGrab
 
 To make it extremely fast to run Java code, JGrab employs a daemon which runs in the background, ready to run
