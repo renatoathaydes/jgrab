@@ -1,1 +1,26 @@
 apply plugin: 'idea'
+
+allprojects {
+    group = 'com.athaydes.jgrab'
+    version = '0.5'
+}
+
+task localRelease( dependsOn: ':jgrab-runner:localInstall' ) {
+    doLast {
+        exec {
+            workingDir file( 'jgrab-client' )
+            commandLine 'cargo', 'build', '--release'
+        }
+        exec {
+            workingDir file( 'jgrab-client' )
+            commandLine 'strip', 'target/release/jgrab-client'
+        }
+        copy {
+            from file( 'jgrab-client/target/release/jgrab-client' )
+            into file( 'releases' )
+            rename '.*', "jgrab-client-$version"
+        }
+
+        println "Local Release of JGrab $version complete."
+    }
+}

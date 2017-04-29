@@ -26,3 +26,10 @@ task fatJar( type: Jar ) {
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree( it ) } }
     with jar
 }
+
+task localInstall( type: Copy, dependsOn: 'fatJar' ) {
+    from fatJar, {
+        rename '.*', 'jgrab.jar'
+    }
+    into "${System.getProperty( 'user.home' )}/.jgrab/"
+}

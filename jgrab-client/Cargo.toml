@@ -3,3 +3,8 @@
 name = "jgrab-client"
 version = "0.0.0"
 authors = [ "Renato Athaydes" ]
+
+[profile.release]
+
+lto = true
+panic = 'abort'
