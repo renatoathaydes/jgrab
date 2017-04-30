@@ -4,6 +4,9 @@ name = "jgrab-client"
 version = "0.0.0"
 authors = [ "Renato Athaydes" ]
 
+[dependencies]
+wait-timeout = "0.1.5"
+
 [profile.release]
 
 lto = true
