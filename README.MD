@@ -118,7 +118,7 @@ JGrab can also run simple Java code snippets using the `-e` option:
 ```
 > jgrab -e '2 + 2'
 4
-> jgrab -e 'System.out.println("Hello JGrab");
+> jgrab -e 'System.out.println("Hello JGrab");'
 Hello JGrab
 ```
 
