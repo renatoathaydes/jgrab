@@ -4,6 +4,7 @@ import com.athaydes.jgrab.Dependency;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * A dependency grabber.
@@ -11,12 +12,11 @@ import java.util.Collection;
 public interface Grabber {
 
     /**
-     * Grabs the requested dependencies, putting the jar files for all dependencies
-     * inside the provided directory.
+     * Grabs the requested dependencies.
      *
      * @param toGrab dependencies to grab
-     * @param dir    directory to put all grabbed dependencies
+     * @return the local files containing the grabbed libraries.
      */
-    void grab( Collection<Dependency> toGrab, File dir );
+    List<File> grab( Collection<Dependency> toGrab );
 
 }

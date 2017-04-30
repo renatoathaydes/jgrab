@@ -10,8 +10,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * An Ivy-based grabber of dependencies.
@@ -23,8 +25,7 @@ public class IvyGrabber implements Grabber {
     private final IvyFactory ivyFactory = new IvyFactory();
 
     @Override
-    public void grab( Collection<Dependency> toGrab, File dir ) {
-
+    public List<File> grab( Collection<Dependency> toGrab ) {
         Ivy ivy = null;
         try {
             ivy = getIvy();
@@ -34,8 +35,10 @@ public class IvyGrabber implements Grabber {
 
         if ( ivy == null ) {
             logger.warn( "Unable to get Ivy instance" );
-            return;
+            return Collections.emptyList();
         }
+
+        List<File> result = new ArrayList<>( toGrab.size() * 2 );
 
         for (Dependency grab : toGrab) {
             logger.debug( "Grabbing {}", grab );
@@ -44,20 +47,21 @@ public class IvyGrabber implements Grabber {
                         .includeTransitiveDependencies( true )
                         .downloadJarOnly( true )
                         .resolve( grab.group, grab.module, grab.version );
-                copyDependencies( resolveReport, dir );
+                addDependencies( resolveReport, result );
             } catch ( RuntimeException | IOException e ) {
                 e.printStackTrace();
                 System.err.println( e.toString() );
             }
         }
+
+        return result;
     }
 
-    private void copyDependencies( ResolveReport resolveReport, File dir ) throws IOException {
+    private void addDependencies( ResolveReport resolveReport, List<File> files ) throws IOException {
         if ( resolveReport.hasError() ) {
             throw new RuntimeException( "Could not resolve dependencies: " + resolveReport.getAllProblemMessages() );
         } else for (ArtifactDownloadReport report : resolveReport.getAllArtifactsReports()) {
-            File jar = report.getLocalFile();
-            Files.copy( jar.toPath(), new File( dir, jar.getName() ).toPath() );
+            files.add( report.getLocalFile() );
         }
     }
 

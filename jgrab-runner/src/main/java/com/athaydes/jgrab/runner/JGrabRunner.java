@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -27,6 +28,8 @@ public class JGrabRunner {
     private static final Logger logger = LoggerFactory.getLogger( JGrabRunner.class );
 
     private static final String JGRAB_LIB_DIR = "jgrab-libs";
+
+    private static final Grabber ivyGrabber = new IvyGrabber();
 
     private static JGrabOptions parseOptions( String[] args ) {
         if ( args.length == 0 ) {
@@ -78,14 +81,16 @@ public class JGrabRunner {
 
         File libDir = new File( tempDir.toFile(), JGRAB_LIB_DIR );
 
+        List<File> libs;
+
         if ( !toGrab.isEmpty() ) {
             libDir.mkdir();
-            new IvyGrabber().grab( toGrab, libDir );
+            libs = ivyGrabber.grab( toGrab );
+        } else {
+            libs = Collections.emptyList();
         }
 
-        File[] libs = libDir.listFiles();
-
-        ClassLoaderContext classLoaderContext = libs == null || libs.length == 0 ?
+        ClassLoaderContext classLoaderContext = libs.isEmpty() ?
                 DefaultClassLoaderContext.INSTANCE :
                 new JGrabClassLoaderContext( libs );
 

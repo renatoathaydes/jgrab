@@ -26,12 +26,12 @@ class JGrabClassLoaderContext implements ClassLoaderContext {
     private final List<JarFile> jars;
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger( JGrabClassLoaderContext.class );
 
-    JGrabClassLoaderContext( File[] dependencyJars ) {
-        URL[] jarUrls = new URL[ dependencyJars.length ];
-        this.jars = new ArrayList<>( dependencyJars.length );
+    JGrabClassLoaderContext( List<File> dependencyJars ) {
+        URL[] jarUrls = new URL[ dependencyJars.size() ];
+        this.jars = new ArrayList<>( dependencyJars.size() );
 
-        for (int i = 0; i < dependencyJars.length; i++) {
-            File jar = dependencyJars[ i ];
+        for (int i = 0; i < dependencyJars.size(); i++) {
+            File jar = dependencyJars.get( i );
 
             try {
                 jars.add( new JarFile( jar ) );
