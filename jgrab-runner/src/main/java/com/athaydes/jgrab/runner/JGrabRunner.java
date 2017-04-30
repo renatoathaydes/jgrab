@@ -99,6 +99,16 @@ public class JGrabRunner {
     private static void runJavaSnippet( String snippet, ClassLoaderContext classLoaderContext ) {
         logger.debug( "Running Java snippet" );
 
+        snippet = snippet.trim();
+
+        if ( snippet.endsWith( ";" ) ) {
+            // user entered a statement, add a return statement after it
+            snippet += "\nreturn null;";
+        } else {
+            // use entered an expression, return the value of that expression
+            snippet = "return " + snippet + ";";
+        }
+
         Callable<?> callable = new OsgiaasJavaCompilerService().compileJavaSnippet( snippet, classLoaderContext )
                 .orElseThrow( () -> new JGrabError( "Java code compilation failed" ) );
 
