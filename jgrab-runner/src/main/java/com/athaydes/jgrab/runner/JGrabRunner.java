@@ -39,6 +39,9 @@ public class JGrabRunner {
             if ( args[ 0 ].equals( "--daemon" ) || args[ 0 ].equals( "-d" ) ) {
                 return new JGrabOptions( JGrabRunnable.START_DAEMON, "" );
             }
+            if ( args[ 0 ].equals( "--help" ) || args[ 0 ].equals( "-h" ) ) {
+                return help();
+            }
 
             return new JGrabOptions( JGrabRunnable.JAVA_FILE, args[ 0 ] );
         }
@@ -55,6 +58,18 @@ public class JGrabRunner {
         throw new JGrabError( reason + "\n\nUsage: jgrab (-e <java_source>) | java_file" );
     }
 
+    private static JGrabOptions help() {
+        System.out.println( "Usage:\n" +
+                "  jgrab <option> | java_file | -e java_snippet\n" +
+                "Options:\n" +
+                "  --daemon -d\n" +
+                "    Starts up the JGrab daemon.\n" +
+                "  --help -h\n" +
+                "    Shows this usage help." );
+
+        return new JGrabOptions( JGrabRunnable.NONE, "" );
+    }
+
     private static void run( String currentDir, JGrabOptions options ) throws Exception {
         switch ( options.jGrabRunnable ) {
             case JAVA_FILE:
@@ -67,6 +82,9 @@ public class JGrabRunner {
                 break;
             case START_DAEMON:
                 JGrabDaemon.start( JGrabRunner::run );
+                break;
+            case NONE:
+                // nothing to do
                 break;
         }
     }
@@ -177,7 +195,7 @@ public class JGrabRunner {
 }
 
 enum JGrabRunnable {
-    JAVA_SOURCE_CODE, JAVA_FILE, START_DAEMON
+    JAVA_SOURCE_CODE, JAVA_FILE, START_DAEMON, NONE
 }
 
 class JGrabOptions {
