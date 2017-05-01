@@ -15,7 +15,6 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -33,7 +32,7 @@ public class JGrabRunner {
 
     private static JGrabOptions parseOptions( String[] args ) {
         if ( args.length == 0 ) {
-            return error( "No arguments provided" );
+            return new JGrabOptions( JGrabRunnable.JAVA_FILE_STD_IN, "" );
         }
         if ( args.length == 1 ) {
             if ( args[ 0 ].equals( "--daemon" ) || args[ 0 ].equals( "-d" ) ) {
@@ -43,7 +42,7 @@ public class JGrabRunner {
                 return help();
             }
 
-            return new JGrabOptions( JGrabRunnable.JAVA_FILE, args[ 0 ] );
+            return new JGrabOptions( JGrabRunnable.JAVA_FILE_NAME, args[ 0 ] );
         }
         if ( args.length == 2 ) {
             if ( args[ 0 ].equals( "-e" ) ) {
@@ -51,7 +50,7 @@ public class JGrabRunner {
             }
         }
 
-        return error( "Unrecognized options: " + Arrays.toString( args ) );
+        return error( "Too many options" );
     }
 
     private static JGrabOptions error( String reason ) {
@@ -72,10 +71,13 @@ public class JGrabRunner {
 
     private static void run( String currentDir, JGrabOptions options ) throws Exception {
         switch ( options.jGrabRunnable ) {
-            case JAVA_FILE:
+            case JAVA_FILE_NAME:
                 Path rawPath = Paths.get( options.arg );
                 Path canonicalPath = rawPath.isAbsolute() ? rawPath : Paths.get( currentDir ).resolve( rawPath );
                 run( new FileJavaCode( canonicalPath ) );
+                break;
+            case JAVA_FILE_STD_IN:
+                run( new StdinJavaCode() );
                 break;
             case JAVA_SOURCE_CODE:
                 run( new StringJavaCode( options.arg ) );
@@ -195,7 +197,7 @@ public class JGrabRunner {
 }
 
 enum JGrabRunnable {
-    JAVA_SOURCE_CODE, JAVA_FILE, START_DAEMON, NONE
+    JAVA_SOURCE_CODE, JAVA_FILE_NAME, JAVA_FILE_STD_IN, START_DAEMON, NONE
 }
 
 class JGrabOptions {
