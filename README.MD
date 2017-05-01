@@ -84,11 +84,17 @@ jgrab -e 'System.out.println("Hello world!");'
 ## General Usage
 
 ```
+=================== JGrab ===================
+ - https://github.com/renatoathaydes/jgrab -
+=============================================
+Jgrab can execute Java code from stdin (if not given any argument),
+a Java file, or a Java snippet.
+
 Usage:
-  jgrab <option> | java_file | -e java_snippet
+  jgrab [<option> | java_file | -e java_snippet]
 Options:
   --daemon -d
-    Starts up the JGrab daemon.
+    Starts up the JGrab daemon (used by the jgrab-client).
   --help -h
     Shows this usage help.
 ```

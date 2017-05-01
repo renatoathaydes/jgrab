@@ -58,11 +58,16 @@ public class JGrabRunner {
     }
 
     private static JGrabOptions help() {
-        System.out.println( "Usage:\n" +
-                "  jgrab <option> | java_file | -e java_snippet\n" +
+        System.out.println( "=================== JGrab ===================\n" +
+                " - https://github.com/renatoathaydes/jgrab -\n" +
+                "=============================================\n" +
+                "Jgrab can execute Java code from stdin (if not given any argument),\n" +
+                "a Java file, or a Java snippet.\n\n" +
+                "Usage:\n" +
+                "  jgrab [<option> | java_file | -e java_snippet]\n" +
                 "Options:\n" +
                 "  --daemon -d\n" +
-                "    Starts up the JGrab daemon.\n" +
+                "    Starts up the JGrab daemon (used by the jgrab-client).\n" +
                 "  --help -h\n" +
                 "    Shows this usage help." );
 
