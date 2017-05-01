@@ -2,6 +2,13 @@
 
 Runs Java code without a build system, grabbing dependencies declared in the Java file itself.
 
+To make it extremely fast to run Java code, JGrab employs a daemon which runs in the background, ready to run
+code once it is started up.
+
+It also uses an in-memory compiler, 
+[osgiaas-javac](https://github.com/renatoathaydes/osgiaas/blob/master/docs/lang/osgiaas-javac.md), which is
+based on the [JavaCompiler](https://docs.oracle.com/javase/7/docs/api/javax/tools/JavaCompiler.html) mechanism.
+
 ## Goals of this project
 
 - [x] to make it extremely easy and fast to run a single Java file or snippet.
@@ -21,14 +28,7 @@ It is **NOT a goal** of this project:
 * to become a full build system.
 * to accept more than one Java file or snippet as input. That's what build systems are for.
 
-## Running JGrab
-
-To make it extremely fast to run Java code, JGrab employs a daemon which runs in the background, ready to run
-code once it is started up.
-
-It also uses an in-memory compiler, 
-[osgiaas-javac](https://github.com/renatoathaydes/osgiaas/blob/master/docs/lang/osgiaas-javac.md), which is
-based on the [JavaCompiler](https://docs.oracle.com/javase/7/docs/api/javax/tools/JavaCompiler.html) mechanism.
+## Getting JGrab
 
 You can use the [Rust](https://www.rust-lang.org/) client to take care of the Java daemon automatically for you.
 
@@ -82,6 +82,16 @@ jgrab -e 'System.out.println("Hello world!");'
 ```
 
 ## General Usage
+
+```
+Usage:
+  jgrab <option> | java_file | -e java_snippet
+Options:
+  --daemon -d
+    Starts up the JGrab daemon.
+  --help -h
+    Shows this usage help.
+```
 
 ### Running Java classes
 
@@ -148,11 +158,3 @@ The first time you run this class, it will download Guava if necessary before co
 so it may take a while.
 
 However, it will run very fast after that! 
-
-
-### Options
-
-* `-d` `--deamon` starts the JGrab daemon.
-* `-e` expects a Java snippet as an argument. Use single-quotes to encapsulate the code, as shown in the examples. 
-* `--stop` stops the JGrab daemon.
-
