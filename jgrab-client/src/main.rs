@@ -1,7 +1,6 @@
-use std::net::TcpStream;
-use std::io::stdout;
-use std::io::Read;
-use std::io::Write;
+use std::net::{TcpStream, Shutdown};
+use std::io::{Stdin, stdin, stdout, Read, Write, Error, Result, Cursor};
+use std::fs::File;
 use std::env;
 use std::str;
 use std::option::Option;
@@ -11,35 +10,62 @@ use std::path::PathBuf;
 use std::thread::sleep;
 use std::time::Duration;
 use wait_timeout::ChildExt;
-use std::io::Error;
+use Input::*;
 
 extern crate wait_timeout;
 
 const MAX_RETRIES: usize = 5;
 
+/// All possible sources of input for the JGrab Client
+enum Input {
+    FileInput(File),
+    StdinInput(Stdin),
+    TextInput(Cursor<String>)
+}
+
+impl Read for Input {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+        match *self {
+            FileInput(ref mut r) => r.read(buf),
+            StdinInput(ref mut r) => r.read(buf),
+            TextInput(ref mut r) => r.read(buf),
+        }
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let message = create_message(&args);
 
-    send_message_retrying(message.as_bytes());
+    let input: Input;
+
+    if args.len() == 1 {
+        // no args, pipe stdin
+        input = StdinInput(stdin());
+    } else if args.len() == 2 && !args[1].starts_with('-') {
+        // there's one argument and it is not an option, so it must be a file
+
+        match File::open(&args[1]) {
+            Ok(file) => input = FileInput(file),
+            Err(err) => error(&format!("unable to read file: {}", err))
+        }
+    } else if args.len() == 2 && args[1].trim() == "--help" {
+        // TODO
+        println!("Help");
+        return;
+    } else {
+        // just pass on the arguments to JGrab
+        input = TextInput(Cursor::new(create_message(&args)))
+    }
+
+    send_message_retrying(input);
 }
 
 fn create_message(args: &Vec<String>) -> String {
-    let args_str = args[1..].join(" ");
-    let curr_dir = env::current_dir().unwrap().into_os_string().into_string().unwrap();
-
-    let mut message: String = String::with_capacity(args_str.len() + curr_dir.len() + 12);
-
-    message.push_str(&curr_dir);
-    message.push('\n');
-    message.push_str(&args_str);
-    message.push_str("\nJGRAB_END\n");
-
-    message
+    args[1..].join(" ")
 }
 
-fn send_message_retrying(message: &[u8]) {
-    if let Some(_) = send_message(message, false) {
+fn send_message_retrying<R: Read>(mut reader: R) {
+    if let Some(_) = send_message(&mut reader, false) {
         // failed to connect, try to start the daemon, then retry
         let mut retries = MAX_RETRIES;
 
@@ -47,7 +73,7 @@ fn send_message_retrying(message: &[u8]) {
         check_status(&mut child);
 
         while retries > 0 {
-            if let Some(err) = send_message(message, true) {
+            if let Some(err) = send_message(&mut reader, true) {
                 check_status(&mut child);
 
                 log(&format!("unable to connect to JGrab daemon: {}", err));
@@ -65,17 +91,32 @@ fn send_message_retrying(message: &[u8]) {
     }
 }
 
-fn send_message(socket_message: &[u8],
-                is_retry: bool) -> Option<Error> {
+fn send_message<R: Read>(reader: &mut R,
+                         is_retry: bool) -> Option<Error> {
     match TcpStream::connect("127.0.0.1:5002") {
         Ok(mut stream) => {
             if is_retry {
                 log("Connected!");
             }
 
-            stream.write(socket_message).unwrap();
+            let mut socket_message = [0u8; 1024];
 
-            let mut client_buffer = [0u8; 1024];
+            loop {
+                match reader.read(&mut socket_message) {
+                    Ok(n) => {
+                        if n == 0 {
+                            break;
+                        } else {
+                            stream.write(&socket_message[0..n]).unwrap();
+                        }
+                    }
+                    Err(err) => error(&err.to_string())
+                }
+            }
+
+            stream.shutdown(Shutdown::Write).unwrap();
+
+            let mut client_buffer = socket_message;
 
             loop {
                 match stream.read(&mut client_buffer) {
