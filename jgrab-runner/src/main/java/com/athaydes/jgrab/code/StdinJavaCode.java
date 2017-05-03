@@ -1,4 +1,4 @@
-package com.athaydes.jgrab.runner;
+package com.athaydes.jgrab.code;
 
 import com.athaydes.jgrab.Dependency;
 import org.slf4j.Logger;
@@ -13,14 +13,14 @@ import java.util.stream.Stream;
 /**
  * A class that knows how to extract information from the source code of a Java file through the standard input.
  */
-class StdinJavaCode implements JavaCode {
+public class StdinJavaCode implements JavaCode {
 
     private static final Logger logger = LoggerFactory.getLogger( StdinJavaCode.class );
 
     private final String className;
     private final String[] lines;
 
-    StdinJavaCode() throws IOException {
+    public StdinJavaCode() throws IOException {
         this.lines = readLinesFromStdin();
         this.className = JavaCode.extractClassNameFrom( lines );
         logger.debug( "Class name: {}", className );

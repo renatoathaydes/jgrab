@@ -1,6 +1,9 @@
 package com.athaydes.jgrab.runner;
 
 import com.athaydes.jgrab.Dependency;
+import com.athaydes.jgrab.code.JavaCode;
+import com.athaydes.jgrab.code.StdinJavaCode;
+import com.athaydes.jgrab.code.StringJavaCode;
 import com.athaydes.jgrab.daemon.JGrabDaemon;
 import com.athaydes.jgrab.ivy.IvyGrabber;
 import com.athaydes.osgiaas.api.env.ClassLoaderContext;
@@ -28,6 +31,8 @@ public class JGrabRunner {
 
     private static final String JGRAB_LIB_DIR = "jgrab-libs";
 
+    public static final String SNIPPET_OPTION = "-e";
+
     private static final Grabber ivyGrabber = new IvyGrabber();
 
     private static JGrabOptions parseOptions( String[] args ) {
@@ -45,7 +50,7 @@ public class JGrabRunner {
             return new JGrabOptions( JGrabRunnable.JAVA_FILE_NAME, args[ 0 ] );
         }
         if ( args.length == 2 ) {
-            if ( args[ 0 ].equals( "-e" ) ) {
+            if ( args[ 0 ].equals( SNIPPET_OPTION ) ) {
                 return new JGrabOptions( JGrabRunnable.JAVA_SOURCE_CODE, args[ 1 ] );
             }
         }
@@ -104,6 +109,7 @@ public class JGrabRunner {
         List<Dependency> toGrab = javaCode.extractDependencies();
         logger.debug( "Dependencies to grab: {}", toGrab );
 
+        // FIXME don't need no lib dir
         File libDir = new File( tempDir.toFile(), JGRAB_LIB_DIR );
 
         List<File> libs;

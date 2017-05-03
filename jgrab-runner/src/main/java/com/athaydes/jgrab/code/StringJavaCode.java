@@ -1,4 +1,4 @@
-package com.athaydes.jgrab.runner;
+package com.athaydes.jgrab.code;
 
 import com.athaydes.jgrab.Dependency;
 
@@ -8,7 +8,7 @@ import java.util.stream.Stream;
 /**
  * A Java code snippet that can be executed.
  */
-class StringJavaCode implements JavaCode {
+public class StringJavaCode implements JavaCode {
 
     private final String code;
     private final String className;

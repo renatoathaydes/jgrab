@@ -1,4 +1,4 @@
-package com.athaydes.jgrab.runner;
+package com.athaydes.jgrab.code;
 
 import com.athaydes.jgrab.Dependency;
 
@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
  * <p>
  * It may be just a snippet or a Runnable class or a class containing a main function.
  */
-interface JavaCode {
+public interface JavaCode {
 
     Pattern PACKAGE_PATTERN = Pattern.compile( "\\s*package\\s+([a-zA-Z_0-9.$]+)\\s*;?\\s*" );
 
