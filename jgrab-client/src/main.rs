@@ -4,8 +4,7 @@ use std::fs::File;
 use std::env;
 use std::str;
 use std::option::Option;
-use std::process::Command;
-use std::process::Child;
+use std::process::{Command, Child, exit};
 use std::path::PathBuf;
 use std::thread::sleep;
 use std::time::Duration;
@@ -15,6 +14,27 @@ use Input::*;
 extern crate wait_timeout;
 
 const MAX_RETRIES: usize = 5;
+
+const JGRAB_INFO: &str = "\
+=============== JGrab Client ================
+ - https://github.com/renatoathaydes/jgrab -
+=============================================
+Jgrab can execute Java code from stdin (if not given any argument),
+a Java file, or a Java snippet.
+
+This is the native JGrab Client, written in Rust!
+
+A Java daemon is started the first time the JGrab Client is run so
+that subsequent runs are much faster.";
+
+const JGRAB_USAGE: &str = "\
+Usage:
+  jgrab [<option> | java_file | -e java_snippet]
+Options:
+  --stop -s
+    Stops the JGrab daemon.
+  --help -h
+    Shows this usage help.";
 
 /// All possible sources of input for the JGrab Client
 enum Input {
@@ -48,10 +68,19 @@ fn main() {
             Ok(file) => input = FileInput(file),
             Err(err) => error(&format!("unable to read file: {}", err))
         }
-    } else if args.len() == 2 && args[1].trim() == "--help" {
-        // TODO
-        println!("Help");
-        return;
+    } else if args.len() == 2 {
+        match args[1].trim() {
+            "--help" | "-h" => {
+                println!("{}\n\n{}", JGRAB_INFO, JGRAB_USAGE);
+                return
+            }
+            "--stop" | "-s" => {
+                input = TextInput(Cursor::new("--stop".to_string()))
+            }
+            _ => {
+                usage_error(&format!("invalid option"));
+            }
+        }
     } else {
         // just pass on the arguments to JGrab
         input = TextInput(Cursor::new(create_message(&args)))
@@ -179,14 +208,20 @@ fn check_status(child: &mut Child) {
             sleep(Duration::from_secs(1));
         }
         Err(e) => error(&format!(
-            "Could not wait for JGrab daemon process status: {}", e)),
+            "unable to wait for JGrab daemon process status: {}", e)),
     }
 }
 
 fn log(message: &str) {
-    println!("==== JGrab Client ==== {}", message)
+    println!("=== JGrab Client === {}", message)
+}
+
+fn usage_error(message: &str) -> ! {
+    println!("### {} ###\n\n{}", message, JGRAB_USAGE);
+    exit(2)
 }
 
 fn error(message: &str) -> ! {
-    panic!("JGrab Client Error - {}", message)
+    println!("### JGrab Client Error - {} ###", message);
+    exit(1)
 }
