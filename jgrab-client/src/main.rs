@@ -34,7 +34,7 @@ Options:
   --stop -s
     Stops the JGrab daemon.
   --help -h
-    Shows this usage help.";
+    Shows usage help.";
 
 /// All possible sources of input for the JGrab Client
 enum Input {
@@ -75,6 +75,10 @@ fn main() {
                 return
             }
             "--stop" | "-s" => {
+                if let Err(_) = connect() {
+                    log("daemon is not running");
+                    return
+                }
                 input = TextInput(Cursor::new("--stop".to_string()))
             }
             _ => {
@@ -120,9 +124,13 @@ fn send_message_retrying<R: Read>(mut reader: R) {
     }
 }
 
+fn connect() -> Result<TcpStream> {
+    TcpStream::connect("127.0.0.1:5002")
+}
+
 fn send_message<R: Read>(reader: &mut R,
                          is_retry: bool) -> Option<Error> {
-    match TcpStream::connect("127.0.0.1:5002") {
+    match connect() {
         Ok(mut stream) => {
             if is_retry {
                 log("Connected!");
@@ -213,7 +221,7 @@ fn check_status(child: &mut Child) {
 }
 
 fn log(message: &str) {
-    println!("=== JGrab Client === {}", message)
+    println!("=== JGrab Client {} ===", message)
 }
 
 fn usage_error(message: &str) -> ! {
