@@ -24,6 +24,16 @@ public class IvyGrabber implements Grabber {
 
     private final IvyFactory ivyFactory = new IvyFactory();
 
+    private static final IvyGrabber INSTANCE = new IvyGrabber();
+
+    public static IvyGrabber getInstance() {
+        return INSTANCE;
+    }
+
+    private IvyGrabber() {
+        // private
+    }
+
     @Override
     public List<File> grab( Collection<Dependency> toGrab ) {
         Ivy ivy = null;

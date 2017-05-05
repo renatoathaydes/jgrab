@@ -33,8 +33,6 @@ public class JGrabRunner {
 
     public static final String SNIPPET_OPTION = "-e";
 
-    private static final Grabber ivyGrabber = new IvyGrabber();
-
     private static JGrabOptions parseOptions( String[] args ) {
         if ( args.length == 0 ) {
             return new JGrabOptions( JGrabRunnable.JAVA_FILE_STD_IN, "" );
@@ -116,7 +114,7 @@ public class JGrabRunner {
 
         if ( !toGrab.isEmpty() ) {
             libDir.mkdir();
-            libs = ivyGrabber.grab( toGrab );
+            libs = IvyGrabber.getInstance().grab( toGrab );
         } else {
             libs = Collections.emptyList();
         }
