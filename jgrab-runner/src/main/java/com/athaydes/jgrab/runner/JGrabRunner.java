@@ -155,6 +155,7 @@ public class JGrabRunner {
             }
         } catch ( Throwable t ) {
             logger.warn( "Problem running Java snippet", t );
+            t.printStackTrace();
         }
     }
 
@@ -178,6 +179,7 @@ public class JGrabRunner {
                 method.invoke( compiledClass, ( Object ) new String[ 0 ] );
             } catch ( Throwable t ) {
                 logger.warn( "Problem running Java class", t );
+                t.printStackTrace();
             }
         }
     }
