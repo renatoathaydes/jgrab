@@ -1,6 +1,6 @@
 package com.athaydes.jgrab;
 
-import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -34,7 +34,7 @@ public class Dependency {
         return new Dependency( parts[ 0 ], parts[ 1 ], parts.length == 2 ? "latest" : parts[ 2 ] );
     }
 
-    public static List<Dependency> parseDependencies( Stream<String> codeLines ) {
+    public static Set<Dependency> parseDependencies( Stream<String> codeLines ) {
         return codeLines.flatMap( line -> {
             Matcher matcher = JGRAB_PATTERN.matcher( line );
             if ( matcher.matches() ) {
@@ -42,7 +42,27 @@ public class Dependency {
             } else {
                 return Stream.empty();
             }
-        } ).collect( Collectors.toList() );
+        } ).collect( Collectors.toSet() );
+    }
+
+    @Override
+    public boolean equals( Object other ) {
+        if ( this == other ) return true;
+        if ( other == null || getClass() != other.getClass() ) return false;
+
+        Dependency that = ( Dependency ) other;
+
+        return group.equals( that.group ) &&
+                module.equals( that.module ) &&
+                version.equals( that.version );
+    }
+
+    @Override
+    public int hashCode() {
+        int result = group.hashCode();
+        result = 31 * result + module.hashCode();
+        result = 31 * result + version.hashCode();
+        return result;
     }
 
     @Override

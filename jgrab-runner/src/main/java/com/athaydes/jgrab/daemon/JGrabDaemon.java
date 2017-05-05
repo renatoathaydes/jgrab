@@ -1,19 +1,26 @@
 package com.athaydes.jgrab.daemon;
 
+import com.athaydes.jgrab.Dependency;
 import com.athaydes.jgrab.code.JavaCode;
 import com.athaydes.jgrab.code.StringJavaCode;
+import com.athaydes.jgrab.ivy.IvyGrabber;
 import com.athaydes.jgrab.runner.JGrabRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.function.Consumer;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 /**
  * JGrab daemon, a TCP socket server that runs in the background waiting for Java code to run.
@@ -23,7 +30,9 @@ public class JGrabDaemon {
     private static final Logger logger = LoggerFactory.getLogger( JGrabDaemon.class );
     private static final String STOP_OPTION = "--stop";
 
-    public static void start( Consumer<JavaCode> runArgs ) {
+    private static final Map<Set<Dependency>, List<File>> libsCache = new HashMap<>();
+
+    public static void start( BiConsumer<JavaCode, List<File>> runArgs ) {
         new Thread( () -> {
             ServerSocket serverSocket;
             try {
@@ -75,13 +84,18 @@ public class JGrabDaemon {
                     if ( code == null ) {
                         out.println( "ERROR: Invalid options. Use -h or --help to see usage." );
                     } else {
+                        Set<Dependency> deps = code.extractDependencies();
+
+                        List<File> libs = libsCache.computeIfAbsent( deps,
+                                ( dependencies ) -> IvyGrabber.getInstance().grab( dependencies ) );
+
                         System.setIn( clientSocket.getInputStream() );
                         System.setOut( out );
                         System.setErr( out );
 
                         // run this synchronously, which means only one program can run per daemon at a time
                         try {
-                            runArgs.accept( code );
+                            runArgs.accept( code, libs );
                         } catch ( Throwable t ) {
                             out.println( t.toString() );
                             t.printStackTrace( out );

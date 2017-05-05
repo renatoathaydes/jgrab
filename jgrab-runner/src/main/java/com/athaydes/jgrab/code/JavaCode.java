@@ -2,7 +2,7 @@ package com.athaydes.jgrab.code;
 
 import com.athaydes.jgrab.Dependency;
 
-import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,7 +18,7 @@ public interface JavaCode {
     Pattern CLASS_PATTERN = Pattern.compile(
             "\\s*((public|static|private|abstract|final)\\s+)*\\s*class\\s+(?<name>[a-zA-Z_0-9.$]+).*" );
 
-    List<Dependency> extractDependencies();
+    Set<Dependency> extractDependencies();
 
     String getClassName();
 

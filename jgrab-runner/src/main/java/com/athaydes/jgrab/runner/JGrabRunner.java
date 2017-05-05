@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 /**
@@ -104,21 +105,21 @@ public class JGrabRunner {
 
         logger.debug( "JGrab using directory: {}", tempDir );
 
-        List<Dependency> toGrab = javaCode.extractDependencies();
+        Set<Dependency> toGrab = javaCode.extractDependencies();
         logger.debug( "Dependencies to grab: {}", toGrab );
-
-        // FIXME don't need no lib dir
-        File libDir = new File( tempDir.toFile(), JGRAB_LIB_DIR );
 
         List<File> libs;
 
         if ( !toGrab.isEmpty() ) {
-            libDir.mkdir();
             libs = IvyGrabber.getInstance().grab( toGrab );
         } else {
             libs = Collections.emptyList();
         }
 
+        run( javaCode, libs );
+    }
+
+    private static void run( JavaCode javaCode, List<File> libs ) {
         ClassLoaderContext classLoaderContext = libs.isEmpty() ?
                 DefaultClassLoaderContext.INSTANCE :
                 new JGrabClassLoaderContext( libs );
