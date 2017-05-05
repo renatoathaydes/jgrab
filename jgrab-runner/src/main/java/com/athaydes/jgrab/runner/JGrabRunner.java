@@ -137,8 +137,13 @@ public class JGrabRunner {
         snippet = snippet.trim();
 
         if ( snippet.endsWith( ";" ) ) {
-            // user entered a statement, add a return statement after it
-            snippet += "\nreturn null;";
+            // user entered a statement, add a return statement after it if needed
+            int index = snippet.lastIndexOf( '\n' );
+            String lastLine = index < 0 ? snippet : snippet.substring( index + 1, snippet.length() );
+
+            if ( !lastLine.contains( "return" ) ) {
+                snippet += "\nreturn null;";
+            }
         } else {
             // use entered an expression, return the value of that expression
             snippet = "return " + snippet + ";";
