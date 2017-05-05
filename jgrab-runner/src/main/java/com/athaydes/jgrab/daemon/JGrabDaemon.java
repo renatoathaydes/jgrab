@@ -56,7 +56,7 @@ public class JGrabDaemon {
                         switch ( args[ 0 ].trim() ) {
                             case STOP_OPTION:
                                 logger.info( "--stop option received, stopping JGrab Daemon" );
-                                out.println( "====== JGrab Daemon stopped ======" );
+                                out.println( "=== JGrab Daemon stopped ===" );
                                 return;
                             default: // try to execute the argument
                                 logger.debug( "Received code to execute" );

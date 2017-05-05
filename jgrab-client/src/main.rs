@@ -221,7 +221,7 @@ fn check_status(child: &mut Child) {
 }
 
 fn log(message: &str) {
-    println!("=== JGrab Client {} ===", message)
+    println!("=== JGrab Client - {} ===", message)
 }
 
 fn usage_error(message: &str) -> ! {
