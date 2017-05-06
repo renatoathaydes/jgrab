@@ -2,7 +2,7 @@ apply plugin: 'idea'
 
 allprojects {
     group = 'com.athaydes.jgrab'
-    version = '0.5'
+    version = '1.0'
 }
 
 task localRelease( dependsOn: ':jgrab-runner:localInstall' ) {
