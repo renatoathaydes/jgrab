@@ -30,8 +30,6 @@ public class JGrabRunner {
 
     private static final Logger logger = LoggerFactory.getLogger( JGrabRunner.class );
 
-    private static final String JGRAB_LIB_DIR = "jgrab-libs";
-
     public static final String SNIPPET_OPTION = "-e";
 
     private static JGrabOptions parseOptions( String[] args ) {

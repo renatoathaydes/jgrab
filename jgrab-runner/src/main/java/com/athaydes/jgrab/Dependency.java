@@ -24,7 +24,7 @@ public class Dependency {
         this.version = version;
     }
 
-    private static Dependency of( String declaration ) {
+    public static Dependency of( String declaration ) {
         String[] parts = declaration.split( ":" );
         if ( 3 < parts.length || parts.length < 2 ) {
             throw new RuntimeException( "Bad declaration (not of the form group:module[:version]): " +
@@ -63,6 +63,10 @@ public class Dependency {
         result = 31 * result + module.hashCode();
         result = 31 * result + version.hashCode();
         return result;
+    }
+
+    public String canonicalNotation() {
+        return group + ":" + module + ":" + version;
     }
 
     @Override

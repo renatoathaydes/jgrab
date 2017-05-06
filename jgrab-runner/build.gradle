@@ -24,6 +24,10 @@ task fatJar( type: Jar ) {
     with jar
 }
 
+test {
+    systemProperty "org.slf4j.simpleLogger.defaultLogLevel", "debug"
+}
+
 task localInstall( type: Copy, dependsOn: 'fatJar' ) {
     from fatJar, {
         rename '.*', 'jgrab.jar'

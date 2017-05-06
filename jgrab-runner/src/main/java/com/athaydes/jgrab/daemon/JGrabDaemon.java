@@ -16,9 +16,7 @@ import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -30,7 +28,17 @@ public class JGrabDaemon {
     private static final Logger logger = LoggerFactory.getLogger( JGrabDaemon.class );
     private static final String STOP_OPTION = "--stop";
 
-    private static final Map<Set<Dependency>, List<File>> libsCache = new HashMap<>();
+    private static final PersistentCache libsCache = new PersistentCache();
+
+    static {
+        Runtime.getRuntime().addShutdownHook( new Thread( () -> {
+            try {
+                libsCache.save();
+            } catch ( IOException e ) {
+                logger.warn( "Failed to save dependencies cache", e );
+            }
+        } ) );
+    }
 
     public static void start( BiConsumer<JavaCode, List<File>> runArgs ) {
         new Thread( () -> {
@@ -86,8 +94,8 @@ public class JGrabDaemon {
                     } else {
                         Set<Dependency> deps = code.extractDependencies();
 
-                        List<File> libs = libsCache.computeIfAbsent( deps,
-                                ( dependencies ) -> IvyGrabber.getInstance().grab( dependencies ) );
+                        List<File> libs = libsCache.libsFor( deps,
+                                () -> IvyGrabber.getInstance().grab( deps ) );
 
                         System.setIn( clientSocket.getInputStream() );
                         System.setOut( out );
