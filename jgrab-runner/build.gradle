@@ -105,6 +105,7 @@ bintray {
         licenses = [ 'Apache-2.0' ]
         labels = [ 'java', 'rust', 'script-engine' ]
         publicDownloadNumbers = true
+        vcsUrl = 'https://github.com/renatoathaydes/jgrab.git'
 
         //noinspection GroovyAssignabilityCheck
         version {
