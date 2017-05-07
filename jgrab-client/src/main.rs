@@ -210,7 +210,7 @@ fn check_status(child: &mut Child) {
 
     match child.wait_timeout(timeout) {
         Ok(Some(status)) => error(&format!(
-            "The JGrab daemon has died prematurely, exit code was {}", status)),
+            "The JGrab daemon has died prematurely, {}", status)),
         Ok(None) => {
             // give time for the socket server to become active
             sleep(Duration::from_secs(1));
