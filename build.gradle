@@ -1,3 +1,5 @@
+import java.util.regex.Pattern
+
 apply plugin: 'idea'
 
 allprojects {
@@ -6,7 +8,27 @@ allprojects {
 }
 
 task localRelease( dependsOn: ':jgrab-runner:localInstall' ) {
+    def findJGrabClientVersion = { ->
+        def inPackageSection = false
+        def versionPattern = Pattern.compile( /\s*version\s*=\s*"(.+)"\s*/ )
+        def version = 'UNKNOWN'
+        file( 'jgrab-client/Cargo.toml' ).readLines().find { line ->
+            if ( inPackageSection ) {
+                def matcher = line =~ versionPattern
+                if ( matcher.matches() ) {
+                    version = matcher.group( 1 )
+                    return true // stop searching
+                }
+            } else if ( line == '[package]' ) {
+                inPackageSection = true
+            }
+            false
+        }
+        return version
+    }
+
     doLast {
+        def clientVersion = findJGrabClientVersion()
         exec {
             workingDir file( 'jgrab-client' )
             commandLine 'cargo', 'build', '--release'
@@ -18,9 +40,9 @@ task localRelease( dependsOn: ':jgrab-runner:localInstall' ) {
         copy {
             from file( 'jgrab-client/target/release/jgrab-client' )
             into file( 'releases' )
-            rename '.*', "jgrab-client-$version"
+            rename '.*', "jgrab-client-${clientVersion}"
         }
 
-        println "Local Release of JGrab $version complete."
+        println "Local Release of JGrab $version and Client $clientVersion complete."
     }
 }
