@@ -15,6 +15,8 @@ extern crate wait_timeout;
 
 const MAX_RETRIES: usize = 5;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 const JGRAB_INFO: &str = "\
 =============== JGrab Client ================
  - https://github.com/renatoathaydes/jgrab -
@@ -80,6 +82,10 @@ fn main() {
                     return
                 }
                 input = TextInput(Cursor::new("--stop".to_string()))
+            }
+            "--version" | "-v" => {
+                println!("JGrab Client Version: {}", VERSION);
+                return
             }
             _ => {
                 usage_error(&format!("invalid option"));
