@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.jar.JarFile;
 
 /**
  * Runs a Java file, using the JGrab annotations to find its dependencies.
@@ -43,6 +45,9 @@ public class JGrabRunner {
             if ( args[ 0 ].equals( "--help" ) || args[ 0 ].equals( "-h" ) ) {
                 return help();
             }
+            if ( args[ 0 ].equals( "--version" ) || args[ 0 ].equals( "-v" ) ) {
+                return version();
+            }
 
             return new JGrabOptions( JGrabRunnable.JAVA_FILE_NAME, args[ 0 ] );
         }
@@ -57,6 +62,28 @@ public class JGrabRunner {
 
     private static JGrabOptions error( String reason ) {
         throw new JGrabError( reason + "\n\nUsage: jgrab (-e <java_source>) | java_file" );
+    }
+
+    private static JGrabOptions version() {
+        URL jarUrl = JGrabRunner.class.getProtectionDomain().getCodeSource().getLocation();
+        String version = "UNKNOWN";
+
+        try ( JarFile jar = new JarFile( new File( jarUrl.getFile() ) ) ) {
+            String jarVersion = jar.getManifest().getMainAttributes().getValue( "Implementation-Version" );
+            if ( jarVersion == null ) {
+                logger.warn( "JGrab jar file's manifest does not contain Implementation-Version, " +
+                        "unable to find out JGrab version." );
+            } else {
+                version = jarVersion;
+            }
+        } catch ( IOException e ) {
+            logger.error( "Cannot access JGrab jar file: " + e );
+        }
+
+        System.out.println( "JGrab Version: " + version );
+        System.out.println( "Java Version: " + System.getProperty( "java.version" ) );
+
+        return new JGrabOptions( JGrabRunnable.NONE, "" );
     }
 
     private static JGrabOptions help() {
