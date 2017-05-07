@@ -26,6 +26,7 @@ task fatJar( type: Jar ) {
                 'Main-Class': 'com.athaydes.jgrab.runner.JGrabRunner'
     }
     baseName = project.name
+    classifier = 'fat-jar'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree( it ) } }
     with jar
 }
@@ -54,7 +55,7 @@ task sourcesJar( type: Jar ) {
 }
 
 artifacts {
-    archives javadocJar, sourcesJar
+    archives javadocJar, sourcesJar, fatJar
 }
 
 // add all the info required by Maven Central to the pom
@@ -105,7 +106,11 @@ bintray {
         licenses = [ 'Apache-2.0' ]
         labels = [ 'java', 'rust', 'script-engine' ]
         publicDownloadNumbers = true
+        websiteUrl = 'https://github.com/renatoathaydes/jgrab'
+        issueTrackerUrl = 'https://github.com/renatoathaydes/jgrab/issues'
         vcsUrl = 'https://github.com/renatoathaydes/jgrab.git'
+        githubRepo = 'renatoathaydes/jgrab'
+        githubReleaseNotesFile = 'README.MD'
 
         //noinspection GroovyAssignabilityCheck
         version {
@@ -124,4 +129,4 @@ bintray {
     }
 }
 
-bintrayUpload.dependsOn build, sourcesJar
+bintrayUpload.dependsOn build, sourcesJar, fatJar
