@@ -6,6 +6,7 @@ authors = [ "Renato Athaydes" ]
 
 [dependencies]
 wait-timeout = "0.1.5"
+hyper = "0.10.9"
 
 [profile.release]
 

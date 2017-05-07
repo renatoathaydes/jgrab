@@ -7,11 +7,13 @@ use std::option::Option;
 use std::process::{Command, Child, exit};
 use std::path::PathBuf;
 use std::thread::sleep;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 use wait_timeout::ChildExt;
+use hyper::client::Client;
 use Input::*;
 
 extern crate wait_timeout;
+extern crate hyper;
 
 const MAX_RETRIES: usize = 5;
 
@@ -102,7 +104,7 @@ fn send_message_retrying<R: Read>(mut reader: R) {
         // failed to connect, try to start the daemon, then retry
         let mut retries = MAX_RETRIES;
 
-        let mut child = start_daemon();
+        let mut child = start_daemon(true);
         check_status(&mut child);
 
         while retries > 0 {
@@ -174,7 +176,7 @@ fn send_message<R: Read>(reader: &mut R,
     }
 }
 
-fn start_daemon() -> Child {
+fn start_daemon(attempt_download: bool) -> Child {
     log("Starting daemon");
 
     if let Some(user_home) = env::home_dir() {
@@ -185,7 +187,7 @@ fn start_daemon() -> Child {
         if jgrab_jar.as_path().is_file() {
             let cmd = Command::new("java")
                 .arg("-jar")
-                .arg(jgrab_jar.into_os_string().into_string().unwrap())
+                .arg(jgrab_jar.into_os_string())
                 .arg("--daemon")
                 .spawn();
 
@@ -196,12 +198,58 @@ fn start_daemon() -> Child {
                 }
                 Err(err) => error(&err.to_string())
             }
+        } else if attempt_download {
+            download_jgrab_jar(&mut jgrab_jar)
         } else {
             error("The JGrab jar is not installed! Please install it as explained \
                    in https://github.com/renatoathaydes/jgrab");
         }
     } else {
         error("user.home could not be found, making it impossible to start the JGrab Daemon");
+    }
+}
+
+fn download_jgrab_jar(jgrab_jar: &mut PathBuf) -> Child {
+    log("JGrab jar is not installed, downloading it...");
+
+    let mut jar_file = match File::create(jgrab_jar) {
+        Ok(file) => file,
+        Err(err) => error(&format!("Could not create JGrab jar due to: {}", &err.to_string()))
+    };
+
+    let client = Client::new();
+    let start_time = SystemTime::now();
+
+    match client.get("http://jcenter.bintray.com/com/athaydes/jgrab/jgrab-runner\
+                        /1.0/jgrab-runner-1.0.jar").send() {
+        Ok(mut response) => {
+            let buffer = &mut [0u8; 1024]; //65536];// 1_048_576];
+            loop {
+                match response.read(buffer) {
+                    Ok(n) => if n != 0 {
+                        match jar_file.write(&buffer[0..n]) {
+                            Ok(_) => (),
+                            Err(err) => error(&format!("Problem writing JGrab jar: {}", &err))
+                        }
+                    } else {
+                        let time: Duration = match start_time.elapsed() {
+                            Ok(t) => t,
+                            Err(_) => Duration::from_secs(0)
+                        };
+
+                        let secs = time.as_secs();
+                        let millis = time.subsec_nanos() / 1_000;
+
+                        log(&format!("Successfully downloaded JGrab jar in {}.{:03.3b} seconds",
+                                     secs, millis));
+
+                        return start_daemon(false);
+                    },
+                    Err(err) => error(&format!("Unable to download JGrab jar: {}", &err))
+                }
+            }
+        }
+        Err(err) => error(&format!("Unable to download JGrab jar: {}", &err))
     }
 }
 
