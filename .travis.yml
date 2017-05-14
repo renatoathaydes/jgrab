@@ -90,8 +90,7 @@ before_cache:
 branches:
   only:
     # release tags
-    - master
-    - trust-test
+    - /^v\d+\.\d+\.\d+.*$/
 
 notifications:
   email:
