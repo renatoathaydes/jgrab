@@ -46,9 +46,6 @@ install:
 #      cargo run --target %TARGET% --release
 #    )
 
-before_script:
-  - cd jgrab-client
-
 before_deploy:
   - cd jgrab-client
   - cargo rustc --target %TARGET% --release --bin

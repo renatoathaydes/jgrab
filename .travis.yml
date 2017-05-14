@@ -56,9 +56,6 @@ install:
   - sh ci/install.sh
   - source ~/.cargo/env || true
 
-before_script:
-  - cd jgrab-client
-
 script:
   - bash ci/script.sh
 
