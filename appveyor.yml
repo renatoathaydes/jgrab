@@ -48,7 +48,7 @@ install:
 
 before_deploy:
   - cd jgrab-client
-  - cargo rustc --target %TARGET% --release --bin
+  - cargo rustc --target %TARGET% --release
   - ps: ci\before_deploy.ps1
 
 deploy:
