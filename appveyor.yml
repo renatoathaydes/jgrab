@@ -57,7 +57,7 @@ deploy:
   # - Encrypt it. Go to https://ci.appveyor.com/tools/encrypt
   # - Paste the output down here
   auth_token:
-    secure: "ZI02qgwawVjWauAYFDvcAedDeyDldlFuSad7F9pmKs8m7hzc3c/+tUY5i02SU7Mwi69Wf7CHUWwXsX4/4Vh3fWZmiW8bNEAHdDH2nssKgPdsFrlCf4YUW12MCyepc4R3Zp1Ny+GUfI2+XlrQ6i+oOJ1S52Zm1l9f/ubMDDqjB1kcsO1mj6ZOmn+JEBsUZKqWiTfLsPobjtcci82OfRPBAbdpnalZjiQniDAjRXMdoVNfnu1AjYXvRP4HAWecWTk+XVL1xvTNYM4l9huopaxzKEYRQ8LGrkveNBPaaZYGb+3UCpT+/DwhjnQUeg7xYamfyVghUXzDOrruNnjPNJd3XxOJno6/3KExj/V1EVAmtt7GcqNHTak6PfnYWdnuaWVt8MAj7srRjUfFWLuAlVkm7NZZP/dqBjR1PvxfMLtusmZMveIaNv8+rMcJ099frAGRYwobeWbSu3mDbOAGA8lcebUShsY6ijulXHURyMWndU7qaMbJuuTd92O8N6kfdiFRxBYcwGsyu+dqGAFo2sNO7v+7f44GJ7AGAfpunGCrD4fpgoWUvgObcInpp++xny9njaqr3UsNz0/hqi63/TgQ5v99jMy8FqkFJZzm3mCx+d0ArGvLu5xa5YEfC1Gdwc0mHON7UtupxTc9dtgoiMbWNrdPA3CaOigBdg9LrRUIwwk="
+    secure: /JycphUOJZOo1qv3g9M49P3BygeLOciivPNivZ/toEosDLk7kvmoZ7S1UEPkQRgu
   description: ''
 #  on:
     # In this example, there are some targets that are tested using the stable
