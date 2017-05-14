@@ -1,0 +1,23 @@
+[root]
+name = "jgrab-client"
+version = "0.6.0"
+dependencies = [
+ "wait-timeout 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "libc"
+version = "0.2.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "wait-timeout"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[metadata]
+"checksum libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)" = "babb8281da88cba992fa1f4ddec7d63ed96280a1a53ec9b919fd37b53d71e502"
+"checksum wait-timeout 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "b9f3bf741a801531993db6478b95682117471f76916f5e690dd8d45395b09349"
