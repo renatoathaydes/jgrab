@@ -1,6 +1,7 @@
 package com.athaydes.jgrab.code;
 
 import com.athaydes.jgrab.Dependency;
+import com.athaydes.jgrab.runner.JGrabError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +26,10 @@ public class StdinJavaCode implements JavaCode {
         this.lines = readLinesFromStdin();
         this.className = JavaCode.extractClassNameFrom( lines );
         logger.debug( "Class name: {}", className );
+
+        if ( className == null ) {
+            throw new JGrabError( "Input is not a Java class" );
+        }
     }
 
     private static String[] readLinesFromStdin() {

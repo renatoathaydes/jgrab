@@ -36,11 +36,11 @@ public class JGrabRunner {
 
     private static JGrabOptions parseOptions( String[] args ) {
         if ( args.length == 0 ) {
-            return new JGrabOptions( JGrabRunnable.JAVA_FILE_STD_IN, "" );
+            return new JGrabOptions.StdIn();
         }
         if ( args.length == 1 ) {
             if ( args[ 0 ].equals( "--daemon" ) || args[ 0 ].equals( "-d" ) ) {
-                return new JGrabOptions( JGrabRunnable.START_DAEMON, "" );
+                return new JGrabOptions.StdIn();
             }
             if ( args[ 0 ].equals( "--help" ) || args[ 0 ].equals( "-h" ) ) {
                 return help();
@@ -48,16 +48,18 @@ public class JGrabRunner {
             if ( args[ 0 ].equals( "--version" ) || args[ 0 ].equals( "-v" ) ) {
                 return version();
             }
-
-            return new JGrabOptions( JGrabRunnable.JAVA_FILE_NAME, args[ 0 ] );
-        }
-        if ( args.length == 2 ) {
-            if ( args[ 0 ].equals( SNIPPET_OPTION ) ) {
-                return new JGrabOptions( JGrabRunnable.JAVA_SOURCE_CODE, args[ 1 ] );
-            }
         }
 
-        return error( "Too many options" );
+        String first = args[ 0 ];
+        String[] rest = new String[ args.length - 1 ];
+        System.arraycopy( args, 1, rest, 0, rest.length );
+
+        if ( first.equals( SNIPPET_OPTION ) ) {
+            String script = String.join( " ", rest );
+            return new JGrabOptions.Snippet( script );
+        }
+
+        return new JGrabOptions.JavaFile( new File( first ), rest );
     }
 
     private static JGrabOptions error( String reason ) {
@@ -83,7 +85,7 @@ public class JGrabRunner {
         System.out.println( "JGrab Version: " + version );
         System.out.println( "Java Version: " + System.getProperty( "java.version" ) );
 
-        return new JGrabOptions( JGrabRunnable.NONE, "" );
+        return new JGrabOptions.None();
     }
 
     private static JGrabOptions help() {
@@ -100,32 +102,29 @@ public class JGrabRunner {
                 "  --help -h\n" +
                 "    Shows this usage help." );
 
-        return new JGrabOptions( JGrabRunnable.NONE, "" );
+        return new JGrabOptions.None();
     }
 
     private static void run( String currentDir, JGrabOptions options ) throws Exception {
-        switch ( options.jGrabRunnable ) {
-            case JAVA_FILE_NAME:
-                Path rawPath = Paths.get( options.arg );
-                Path canonicalPath = rawPath.isAbsolute() ? rawPath : Paths.get( currentDir ).resolve( rawPath );
-                run( new FileJavaCode( canonicalPath ) );
-                break;
-            case JAVA_FILE_STD_IN:
-                run( new StdinJavaCode() );
-                break;
-            case JAVA_SOURCE_CODE:
-                run( new StringJavaCode( options.arg ) );
-                break;
-            case START_DAEMON:
-                JGrabDaemon.start( JGrabRunner::run );
-                break;
-            case NONE:
-                // nothing to do
-                break;
+        if ( options instanceof JGrabOptions.JavaFile ) {
+            JGrabOptions.JavaFile javaFile = ( JGrabOptions.JavaFile ) options;
+            Path rawPath = javaFile.file.toPath();
+            Path canonicalPath = rawPath.isAbsolute() ? rawPath : Paths.get( currentDir ).resolve( rawPath );
+            run( new FileJavaCode( canonicalPath ), javaFile.args );
+        } else if ( options instanceof JGrabOptions.StdIn ) {
+            run( new StdinJavaCode(), new String[ 0 ] );
+        } else if ( options instanceof JGrabOptions.Snippet ) {
+            run( new StringJavaCode( ( ( JGrabOptions.Snippet ) options ).code ), new String[ 0 ] );
+        } else if ( options instanceof JGrabOptions.Daemon ) {
+            JGrabDaemon.start( JGrabRunner::run );
+        } else if ( options instanceof JGrabOptions.None ) {
+            // nothing to do
+        } else {
+            error( "Unknown JGrab option: " + options );
         }
     }
 
-    private static void run( JavaCode javaCode ) {
+    private static void run( JavaCode javaCode, String[] args ) {
         Path tempDir = getTempDir();
 
         logger.debug( "JGrab using directory: {}", tempDir );
@@ -141,10 +140,12 @@ public class JGrabRunner {
             libs = Collections.emptyList();
         }
 
-        run( javaCode, libs );
+        run( javaCode, args, libs );
     }
 
-    private static void run( JavaCode javaCode, List<File> libs ) {
+    private static void run( JavaCode javaCode,
+                             String[] args,
+                             List<File> libs ) {
         ClassLoaderContext classLoaderContext = libs.isEmpty() ?
                 DefaultClassLoaderContext.INSTANCE :
                 new JGrabClassLoaderContext( libs );
@@ -152,7 +153,7 @@ public class JGrabRunner {
         if ( javaCode.isSnippet() ) {
             runJavaSnippet( javaCode.getCode(), classLoaderContext );
         } else {
-            runJavaClass( javaCode, classLoaderContext );
+            runJavaClass( javaCode, classLoaderContext, args );
         }
     }
 
@@ -188,7 +189,9 @@ public class JGrabRunner {
         }
     }
 
-    private static void runJavaClass( JavaCode javaCode, ClassLoaderContext classLoaderContext ) {
+    private static void runJavaClass( JavaCode javaCode,
+                                      ClassLoaderContext classLoaderContext,
+                                      String[] args ) {
         logger.debug( "Running Java class" );
 
         Class<Object> compiledClass = new OsgiaasJavaCompilerService()
@@ -205,7 +208,7 @@ public class JGrabRunner {
         } else {
             try {
                 Method method = compiledClass.getMethod( "main", String[].class );
-                method.invoke( compiledClass, ( Object ) new String[ 0 ] );
+                method.invoke( compiledClass, ( Object ) args );
             } catch ( Throwable t ) {
                 logger.warn( "Problem running Java class", t );
                 t.printStackTrace();
@@ -238,16 +241,31 @@ public class JGrabRunner {
 
 }
 
-enum JGrabRunnable {
-    JAVA_SOURCE_CODE, JAVA_FILE_NAME, JAVA_FILE_STD_IN, START_DAEMON, NONE
-}
+abstract class JGrabOptions {
+    static class Snippet extends JGrabOptions {
+        final String code;
 
-class JGrabOptions {
-    final JGrabRunnable jGrabRunnable;
-    final String arg;
+        public Snippet( String code ) {
+            this.code = code;
+        }
+    }
 
-    JGrabOptions( JGrabRunnable jGrabRunnable, String arg ) {
-        this.jGrabRunnable = jGrabRunnable;
-        this.arg = arg;
+    static class JavaFile extends JGrabOptions {
+        final File file;
+        final String[] args;
+
+        public JavaFile( File file, String[] args ) {
+            this.file = file;
+            this.args = args;
+        }
+    }
+
+    static class StdIn extends JGrabOptions {
+    }
+
+    static class Daemon extends JGrabOptions {
+    }
+
+    static class None extends JGrabOptions {
     }
 }
