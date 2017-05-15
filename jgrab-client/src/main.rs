@@ -35,6 +35,8 @@ Usage:
 Options:
   --stop -s
     Stops the JGrab daemon.
+  --start -t
+    Starts the JGrab daemon (if not yet running).
   --help -h
     Shows usage help.";
 
@@ -74,6 +76,10 @@ fn main() {
         match args[1].trim() {
             "--help" | "-h" => {
                 println!("{}\n\n{}", JGRAB_INFO, JGRAB_USAGE);
+                return
+            }
+            "--start" | "-t" => {
+                send_message_retrying(TextInput(Cursor::new("-e null".to_string())));
                 return
             }
             "--stop" | "-s" => {
