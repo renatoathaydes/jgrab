@@ -41,6 +41,7 @@ public class JGrabDaemon {
 
     public static void start( RunArgs runArgs ) {
         new Thread( () -> {
+            logger.debug( "Starting JGrab Daemon" );
             ServerSocket serverSocket;
             try {
                 serverSocket = new ServerSocket( 5002 );
@@ -128,7 +129,6 @@ public class JGrabDaemon {
                         try {
                             runArgs.accept( code, args, libs );
                         } catch ( Throwable t ) {
-                            out.println( t.toString() );
                             t.printStackTrace( out );
                         }
                     }

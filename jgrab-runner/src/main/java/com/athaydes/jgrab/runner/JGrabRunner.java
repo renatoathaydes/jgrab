@@ -40,7 +40,7 @@ public class JGrabRunner {
         }
         if ( args.length == 1 ) {
             if ( args[ 0 ].equals( "--daemon" ) || args[ 0 ].equals( "-d" ) ) {
-                return new JGrabOptions.StdIn();
+                return new JGrabOptions.Daemon();
             }
             if ( args[ 0 ].equals( "--help" ) || args[ 0 ].equals( "-h" ) ) {
                 return help();
@@ -79,7 +79,7 @@ public class JGrabRunner {
                 version = jarVersion;
             }
         } catch ( IOException e ) {
-            logger.error( "Cannot access JGrab jar file: " + e );
+            logger.error( "Cannot access JGrab jar file to check version: " + e );
         }
 
         System.out.println( "JGrab Version: " + version );
@@ -184,7 +184,7 @@ public class JGrabRunner {
                 System.out.println( result.toString() );
             }
         } catch ( Throwable t ) {
-            logger.warn( "Problem running Java snippet", t );
+            System.err.println( "Problem running Java snippet: " + t );
             t.printStackTrace();
         }
     }
@@ -203,14 +203,15 @@ public class JGrabRunner {
                 Runnable runnable = ( Runnable ) compiledClass.getDeclaredConstructor().newInstance();
                 runnable.run();
             } catch ( Throwable t ) {
-                logger.warn( "Problem running Java class", t );
+                System.err.println( "Problem running Java class: " + t );
+                t.printStackTrace();
             }
         } else {
             try {
                 Method method = compiledClass.getMethod( "main", String[].class );
                 method.invoke( compiledClass, ( Object ) args );
             } catch ( Throwable t ) {
-                logger.warn( "Problem running Java class", t );
+                System.err.println( "Problem running Java class: " + t );
                 t.printStackTrace();
             }
         }
@@ -229,9 +230,10 @@ public class JGrabRunner {
             JGrabOptions options = parseOptions( args );
             run( currentDir, options );
         } catch ( JGrabError e ) {
-            logger.error( e.getMessage() );
+            System.err.println( e.getMessage() );
         } catch ( Exception e ) {
-            logger.error( "Unable to run Java class", e );
+            System.err.println( "Unable to run Java class due to " + e );
+            e.printStackTrace();
         }
     }
 
