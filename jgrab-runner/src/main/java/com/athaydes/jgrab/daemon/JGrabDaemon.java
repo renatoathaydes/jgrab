@@ -15,9 +15,9 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * JGrab daemon, a TCP socket server that runs in the background waiting for Java code to run.
@@ -28,6 +28,8 @@ public class JGrabDaemon {
     private static final String STOP_OPTION = "--stop";
 
     private static final PersistentCache libsCache = new PersistentCache();
+
+    private static final Pattern JAVA_ARGUMENTS_LINE = Pattern.compile( "\\[.+]" );
 
     static {
         Runtime.getRuntime().addShutdownHook( new Thread( () -> {
@@ -72,65 +74,54 @@ public class JGrabDaemon {
                         continue;
                     }
 
-                    String[] args = firstLine.split( " ", 2 );
+                    JavaCode code;
+                    String[] args;
 
-                    logger.debug( "Daemon received options: {}", Arrays.toString( args ) );
+                    // check for Java file contents preceded by Java arguments
+                    if ( messageBuilder.length() > 0 && JAVA_ARGUMENTS_LINE.matcher( firstLine ).matches() ) {
+                        // remove the [] demarkers
+                        String javaArgs = firstLine.substring( 1, firstLine.length() - 1 );
 
-                    JavaCode code = null;
+                        code = new StringJavaCode( messageBuilder.toString() );
+                        args = javaArgs.split( " " );
+                    } else {
+                        String input = ( firstLine + messageBuilder ).trim();
 
-                    if ( messageBuilder.length() > 0 ) {
-                        // if more than one line was given, the only allowed option is -e
-                        if ( args.length > 0 && args[ 0 ].equals( JGrabRunner.SNIPPET_OPTION ) ) {
-                            if ( args.length == 2 ) {
-                                messageBuilder.insert( 0, args[ 1 ] );
-                            }
-
-                            code = new StringJavaCode( messageBuilder.toString() );
-                        } else {
-                            messageBuilder.insert( 0, firstLine );
-                            code = new StringJavaCode( messageBuilder.toString() );
+                        if ( input.equals( STOP_OPTION ) ) {
+                            logger.info( "--stop option received, stopping JGrab Daemon" );
+                            out.println( "=== JGrab Daemon stopped ===" );
+                            return;
                         }
-                    } else if ( args.length == 1 ) {
-                        switch ( args[ 0 ].trim() ) {
-                            case STOP_OPTION:
-                                logger.info( "--stop option received, stopping JGrab Daemon" );
-                                out.println( "=== JGrab Daemon stopped ===" );
-                                return;
-                            case JGrabRunner.SNIPPET_OPTION:
+
+                        if ( input.startsWith( JGrabRunner.SNIPPET_OPTION ) ) {
+                            String snippet = input.substring( JGrabRunner.SNIPPET_OPTION.length() );
+                            if ( snippet.isEmpty() ) {
                                 out.println( "ERROR: no snippet provided to execute" );
                                 continue;
-                            default: // try to execute the argument
-                                logger.debug( "Received code to execute" );
-                                code = new StringJavaCode( args[ 0 ] );
-                        }
-                    } else if ( args.length == 2 ) {
-                        if ( args[ 0 ].trim().equals( JGrabRunner.SNIPPET_OPTION ) ) {
-                            code = new StringJavaCode( args[ 1 ] );
+                            } else {
+                                code = new StringJavaCode( snippet );
+                                args = new String[ 0 ];
+                            }
                         } else {
-                            logger.debug( "Received code to execute" );
-                            code = new StringJavaCode( String.join( " ", args ) );
+                            code = new StringJavaCode( input );
+                            args = new String[ 0 ];
                         }
                     }
 
-                    // if we got here, there must be JavaCode to run, or it's an error
-                    if ( code == null ) {
-                        out.println( "ERROR: Invalid options." );
-                    } else {
-                        Set<Dependency> deps = code.extractDependencies();
+                    Set<Dependency> deps = code.extractDependencies();
 
-                        List<File> libs = libsCache.libsFor( deps,
-                                () -> IvyGrabber.getInstance().grab( deps ) );
+                    List<File> libs = libsCache.libsFor( deps,
+                            () -> IvyGrabber.getInstance().grab( deps ) );
 
-                        System.setIn( clientSocket.getInputStream() );
-                        System.setOut( out );
-                        System.setErr( out );
+                    System.setIn( clientSocket.getInputStream() );
+                    System.setOut( out );
+                    System.setErr( out );
 
-                        // run this synchronously, which means only one program can run per daemon at a time
-                        try {
-                            runArgs.accept( code, args, libs );
-                        } catch ( Throwable t ) {
-                            t.printStackTrace( out );
-                        }
+                    // run this synchronously, which means only one program can run per daemon at a time
+                    try {
+                        runArgs.accept( code, args, libs );
+                    } catch ( Throwable t ) {
+                        t.printStackTrace( out );
                     }
                 } catch ( IOException e ) {
                     logger.warn( "Problem handling client message", e );

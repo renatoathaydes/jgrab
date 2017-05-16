@@ -2,6 +2,7 @@ use std::net::{TcpStream, Shutdown};
 use std::io::{Stdin, stdin, stdout, Read, Write, Error, Result, Cursor};
 use std::fs::File;
 use std::env;
+use std::iter::Iterator;
 use std::str;
 use std::option::Option;
 use std::process::{Command, Child, exit};
@@ -31,7 +32,7 @@ that subsequent runs are much faster.";
 
 const JGRAB_USAGE: &str = "\
 Usage:
-  jgrab [<option> | java_file | -e java_snippet]
+  jgrab [<option> | java_file [java-args*] | -e java_snippet]
 Options:
   --stop -s
     Stops the JGrab daemon.
@@ -44,7 +45,8 @@ Options:
 enum Input {
     FileInput(File),
     StdinInput(Stdin),
-    TextInput(Cursor<String>)
+    TextInput(Cursor<String>),
+    Copy(Box<Read>)
 }
 
 impl Read for Input {
@@ -53,27 +55,25 @@ impl Read for Input {
             FileInput(ref mut r) => r.read(buf),
             StdinInput(ref mut r) => r.read(buf),
             TextInput(ref mut r) => r.read(buf),
+            Copy(ref mut r) => r.read(buf)
         }
     }
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let args: Vec<String> = env::args().skip(1).collect();
 
     let input: Input;
 
-    if args.len() == 1 {
+    if args.len() == 0 {
         // no args, pipe stdin
         input = StdinInput(stdin());
-    } else if args.len() == 2 && !args[1].starts_with('-') {
+    } else if args.len() == 1 && !args[0].starts_with('-') {
         // there's one argument and it is not an option, so it must be a file
-
-        match File::open(&args[1]) {
-            Ok(file) => input = FileInput(file),
-            Err(err) => error(&format!("unable to read file: {}", err))
-        }
-    } else if args.len() == 2 {
-        match args[1].trim() {
+        input = file_input(&args[0]);
+    } else if args.len() == 1 {
+        // one argument starting with -
+        match args[0].trim() {
             "--help" | "-h" => {
                 println!("{}\n\n{}", JGRAB_INFO, JGRAB_USAGE);
                 return
@@ -93,20 +93,43 @@ fn main() {
                 println!("JGrab Client Version: {}", VERSION);
                 return
             }
+            "-e" => usage_error(&format!("-e option missing code snippet")),
             _ => {
                 usage_error(&format!("invalid option"));
             }
         }
     } else {
-        // just pass on the arguments to JGrab
-        input = TextInput(Cursor::new(create_message(&args)))
+        // more than one argument given
+        match args[0].trim() {
+            "-e" => {
+                // just pass on the arguments to JGrab
+                input = create_message(&args)
+            }
+            _ => {
+                // assume it's a file + java arguments
+                let file = file_input(&args[0]);
+                let java_args = create_wrapped_message("[", &args[1..], "]\n");
+                input = Copy(Box::new(java_args.chain(file)))
+            }
+        }
     }
 
     send_message_retrying(input);
 }
 
-fn create_message(args: &Vec<String>) -> String {
-    args[1..].join(" ")
+fn file_input(file_name: &String) -> Input {
+    match File::open(file_name) {
+        Ok(file) => FileInput(file),
+        Err(err) => error(&format!("unable to read file: {}", err))
+    }
+}
+
+fn create_message(args: &[String]) -> Input {
+    TextInput(Cursor::new(args.join(" ")))
+}
+
+fn create_wrapped_message(prefix: &str, args: &[String], suffix: &str) -> Input {
+    TextInput(Cursor::new(prefix.to_string() + &args.join(" ") + suffix))
 }
 
 fn send_message_retrying<R: Read>(mut reader: R) {
