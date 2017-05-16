@@ -26,6 +26,7 @@ public class JGrabDaemon {
 
     private static final Logger logger = LoggerFactory.getLogger( JGrabDaemon.class );
     private static final String STOP_OPTION = "--stop";
+    private static final String VERSION_OPTION = "--version";
 
     private static final PersistentCache libsCache = new PersistentCache();
 
@@ -91,6 +92,14 @@ public class JGrabDaemon {
                             logger.info( "--stop option received, stopping JGrab Daemon" );
                             out.println( "=== JGrab Daemon stopped ===" );
                             return;
+                        }
+
+                        if ( input.equals( VERSION_OPTION ) ) {
+                            logger.info( "--version option received" );
+                            System.setOut( out );
+                            System.setErr( out );
+                            JGrabRunner.version();
+                            continue;
                         }
 
                         if ( input.startsWith( JGrabRunner.SNIPPET_OPTION ) ) {

@@ -66,7 +66,7 @@ public class JGrabRunner {
         throw new JGrabError( reason + "\n\nUsage: jgrab (-e <java_source>) | java_file" );
     }
 
-    private static JGrabOptions version() {
+    public static JGrabOptions version() {
         URL jarUrl = JGrabRunner.class.getProtectionDomain().getCodeSource().getLocation();
         String version = "UNKNOWN";
 

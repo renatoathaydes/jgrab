@@ -93,6 +93,7 @@ fn main() {
             }
             "--version" | "-v" => {
                 println!("JGrab Client Version: {}", VERSION);
+                show_daemon_version();
                 return
             }
             "-e" => usage_error(&format!("-e option missing code snippet")),
@@ -254,6 +255,12 @@ fn check_status(child: &mut Child) {
         }
         Err(e) => error(&format!(
             "unable to wait for JGrab daemon process status: {}", e)),
+    }
+}
+
+fn show_daemon_version() {
+    if let Some(_) = send_message(&mut TextInput(Cursor::new("--version".to_string())), false) {
+        println!("(Run the JGrab daemon to see its version)");
     }
 }
 
