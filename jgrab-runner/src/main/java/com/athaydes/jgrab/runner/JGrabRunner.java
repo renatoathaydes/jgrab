@@ -95,12 +95,14 @@ public class JGrabRunner {
                 "Jgrab can execute Java code from stdin (if not given any argument),\n" +
                 "a Java file, or a Java snippet.\n\n" +
                 "Usage:\n" +
-                "  jgrab [<option> | java_file | -e java_snippet]\n" +
+                "  jgrab [<option> | java_file [java-args*] | -e java_snippet]\n" +
                 "Options:\n" +
                 "  --daemon -d\n" +
                 "    Starts up the JGrab daemon (used by the jgrab-client).\n" +
                 "  --help -h\n" +
-                "    Shows this usage help." );
+                "    Shows usage.\n" +
+                "  --version -v\n" +
+                "    Shows version information." );
 
         return new JGrabOptions.None();
     }

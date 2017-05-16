@@ -39,7 +39,9 @@ Options:
   --start -t
     Starts the JGrab daemon (if not yet running).
   --help -h
-    Shows usage help.";
+    Shows usage.
+  --version -v
+    Shows version information.";
 
 /// All possible sources of input for the JGrab Client
 enum Input {
