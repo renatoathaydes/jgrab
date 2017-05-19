@@ -40,9 +40,9 @@ JGrab is installed in the `$HOME/.jgrab/` directory.
 
 > If for some reason you don't want to use `curl` to download and install JGrab,
   just download the JGrab Client from [GitHub](https://github.com/renatoathaydes/jgrab/releases),
-  and the Java jar from [Jcenter](http://jcenter.bintray.com/com/athaydes/jgrab/jgrab-runner/).
+  and the Java jar from [JCenter](http://jcenter.bintray.com/com/athaydes/jgrab/jgrab-runner/).
 
-### Running the native, Rust client
+### Running the native Rust client
 
 Run the [Rust](https://www.rust-lang.org/) client with:
 
@@ -168,15 +168,27 @@ Hello JGrab
 JGrab can also run simple Java code snippets using the `-e` option:
 
 ```
-# statements must not be terminated with ';'
+# expressions (anything that returns a value)
+# must not be terminated with ';'
 > jgrab -e 2 + 2
 4
-# expressions must be terminated with ';'
+# statements MUST be terminated with ';'
 > jgrab -e 'System.out.println("Hello JGrab");'
 Hello JGrab
 ```
 
 > Hint: always use single-quotes around code snippets to stop the shell from interpreting double-quotes.
+
+### Piping Java code as input
+
+JGrab reads from stdin if not given any arguments.
+
+This allows piping to work seamlessly:
+
+```
+> cat Hello.java | jgrab
+Hello JGrab
+```
 
 ### Declaring external dependencies
 
