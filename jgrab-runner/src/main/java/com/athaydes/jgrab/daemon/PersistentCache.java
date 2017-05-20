@@ -104,6 +104,10 @@ class PersistentCache {
 
     List<File> libsFor( Set<Dependency> dependencies,
                         Supplier<List<File>> compute ) {
+        if ( dependencies.isEmpty() ) {
+            return Collections.emptyList();
+        }
+
         if ( !isCacheLoaded.getAndSet( true ) ) {
             cache.putAll( loadCache() );
         }
