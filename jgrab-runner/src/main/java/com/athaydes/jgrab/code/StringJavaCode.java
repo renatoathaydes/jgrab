@@ -40,4 +40,9 @@ public class StringJavaCode implements JavaCode {
         return code;
     }
 
+    @Override
+    public String toString() {
+        return getCode();
+    }
+
 }

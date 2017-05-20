@@ -63,4 +63,9 @@ public class StdinJavaCode implements JavaCode {
         return String.join( "\n", lines );
     }
 
+    @Override
+    public String toString() {
+        return getCode();
+    }
+
 }

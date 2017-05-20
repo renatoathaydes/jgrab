@@ -82,11 +82,11 @@ public class JGrabDaemon {
                     if ( messageBuilder.length() > 0 && JAVA_ARGUMENTS_LINE.matcher( firstLine ).matches() ) {
                         // remove the [] demarkers
                         String javaArgs = firstLine.substring( 1, firstLine.length() - 1 );
-
+                        logger.debug( "Java arguments: {}", javaArgs );
                         code = new StringJavaCode( messageBuilder.toString() );
                         args = javaArgs.split( " " );
                     } else {
-                        String input = ( firstLine + messageBuilder ).trim();
+                        String input = ( firstLine + "\n" + messageBuilder ).trim();
 
                         if ( input.equals( STOP_OPTION ) ) {
                             logger.info( "--stop option received, stopping JGrab Daemon" );
@@ -117,7 +117,11 @@ public class JGrabDaemon {
                         }
                     }
 
+                    logSourceCode( code );
+
                     Set<Dependency> deps = code.extractDependencies();
+
+                    logger.debug( "Dependencies to grab: {}", deps );
 
                     List<File> libs = libsCache.libsFor( deps,
                             () -> IvyGrabber.getInstance().grab( deps ) );
@@ -141,6 +145,11 @@ public class JGrabDaemon {
                 }
             }
         }, "jgrab-daemon" ).start();
+    }
+
+    private static void logSourceCode( Object source ) {
+        logger.trace( "Source code:\n------------------------------------\n" +
+                "{}\n------------------------------------\n", source );
     }
 
     @FunctionalInterface

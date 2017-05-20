@@ -80,4 +80,8 @@ class FileJavaCode implements JavaCode {
         return fileName;
     }
 
+    @Override
+    public String toString() {
+        return getCode();
+    }
 }
