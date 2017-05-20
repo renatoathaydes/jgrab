@@ -219,10 +219,34 @@ However, it will run very fast after that!
 
 ## Debugging
 
-To debug, start the Java daemon using the following command:
+### Enabling JGrab Logging
+
+To enable JGrab logging, start the Java daemon using the following command:
 
 ```
 java -Dorg.slf4j.simpleLogger.defaultLogLevel=debug -jar ~/.jgrab/jgrab.jar -d
 ```
 
 From another shell, just use JGrab normally. The daemon process will log pretty much everything it does.
+
+For even more information, use the `trace` level instead of `debug`.
+
+### Debugging Java classes run by JGrab
+
+Just start the JGrab daemon with the Java debugger enabled, then attach to it via your favourite IDE with the
+sources you will run added to the IDE's build path.
+
+You can start the JGrab daemon with the Java debugger enabled on port 5005 with the following command: 
+
+```
+java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -jar ~/.jgrab/jgrab.jar --daemon
+```
+
+To attach the debugger to this process from IntelliJ:
+ 
+ * right-click on the folder containing your source code, then select `Mark directory as > Source Roots`.
+ * select `Run > Attach to Local Process...` from the top menu, and select the JGrab daemon process.
+ * from a shell, run your Java file containing breakpoints using JGrab.
+ 
+The IntelliJ debugger should stop on all breakpoints marked in the Java file you ran.
+
