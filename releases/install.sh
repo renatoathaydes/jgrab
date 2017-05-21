@@ -108,7 +108,7 @@ main() {
 
     ensure curl -sSfL "$JGRAB_JAR_URL" -o "$_jar_file"
 
-    local _jgrab_home="$(eval echo ~$USER)/.jgrab"
+    local _jgrab_home="$HOME/.jgrab"
 
     ignore mkdir "$_jgrab_home"
 
