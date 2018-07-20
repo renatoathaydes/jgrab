@@ -91,6 +91,7 @@ public class JGrabDaemon {
                         if ( input.equals( STOP_OPTION ) ) {
                             logger.info( "--stop option received, stopping JGrab Daemon" );
                             out.println( "=== JGrab Daemon stopped ===" );
+                            System.exit(0);
                             return;
                         }
 
