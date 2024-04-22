@@ -1,10 +1,11 @@
 plugins {
-    id 'java'
-    id 'maven'
-    id "com.jfrog.bintray" version "1.6"
+    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
 }
 
-sourceCompatibility = 1.8
+sourceCompatibility = 11
+targetCompatibility = 11
 
 description = 'Runs Java code without a build system, grabbing dependencies declared in the Java file itself.'
 
@@ -13,10 +14,10 @@ repositories {
 }
 
 dependencies {
-    compile 'org.apache.ivy:ivy:2.4.0'
-    compile 'com.athaydes.osgiaas:osgiaas-javac:0.7'
-    compile 'org.slf4j:slf4j-simple:1.7.21'
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    implementation 'org.apache.ivy:ivy:2.4.0'
+    implementation 'com.athaydes.osgiaas:osgiaas-javac:0.7'
+    implementation 'org.slf4j:slf4j-simple:1.7.21'
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
 
 task fatJar( type: Jar ) {
@@ -44,89 +45,87 @@ task localInstall( type: Copy, dependsOn: 'fatJar' ) {
 
 /* Publishing config */
 
-task javadocJar( type: Jar ) {
-    classifier = 'javadoc'
-    from javadoc
+jar {
+    manifest {
+        attributes(
+                "Implementation-Title": "JGrab",
+                "Implementation-Version": project.version,
+                "Automatic-Module-Name": 'com.athaydes.jgrab' )
+    }
 }
 
-task sourcesJar( type: Jar ) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+javadoc {
+    if ( JavaVersion.current().isJava9Compatible() ) {
+        options.addBooleanOption( 'html5', true )
+    }
 }
 
 artifacts {
-    archives javadocJar, sourcesJar, fatJar
+    archives fatJar
 }
 
-// add all the info required by Maven Central to the pom
-configure( install.repositories.mavenInstaller ) {
-    pom.project {
-        inceptionYear '2017'
-        name project.name
-        packaging 'jar'
-        description project.description
+publishing {
+    publications {
+        mavenJava( MavenPublication ) {
+            artifactId = 'jgrab'
+            from components.java
+            versionMapping {
+                usage( 'java-api' ) {
+                    fromResolutionOf( 'runtimeClasspath' )
+                }
+                usage( 'java-runtime' ) {
+                    fromResolutionResult()
+                }
+            }
+            pom {
+                inceptionYear = '2017'
+                name = project.name
+                packaging = 'jar'
+                description = project.description
 
-        url 'https://github.com/renatoathaydes/jgrab'
+                url = 'https://github.com/renatoathaydes/jgrab'
 
-        scm {
-            connection 'git@github.com:renatoathaydes/jgrab.git'
-            developerConnection 'git@github.com:renatoathaydes/jgrab.git'
-            url 'https://github.com/renatoathaydes/jgrab'
-        }
+                scm {
+                    connection = 'git@github.com:renatoathaydes/jgrab.git'
+                    developerConnection = 'git@github.com:renatoathaydes/jgrab.git'
+                    url = 'https://github.com/renatoathaydes/jgrab'
+                }
 
-        licenses {
-            license {
-                name 'The Apache License, Version 2.0'
-                url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'renatoathaydes'
+                        name = 'Renato Athaydes'
+                        email = 'renato@athaydes.com'
+                    }
+                }
             }
         }
-
-        developers {
-            developer {
-                id 'renatoathaydes'
-                name 'Renato Athaydes'
-                email 'renato@athaydes.com'
+    }
+    repositories {
+        maven {
+            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+            credentials {
+                username ossrhUsername
+                password ossrhPassword
             }
         }
     }
 }
 
-def getProjectProperty = { String propertyName ->
-    project.properties[ propertyName ]
-}
-
-bintray {
-    user = getProjectProperty "bintrayUserName"
-    key = getProjectProperty "bintrayApiKey"
-    configurations = [ 'archives' ]
-    publish = true
-    pkg {
-        repo = 'maven'
-        name = 'jgrab'
-        licenses = [ 'Apache-2.0' ]
-        labels = [ 'java', 'rust', 'script-engine' ]
-        publicDownloadNumbers = true
-        websiteUrl = 'https://github.com/renatoathaydes/jgrab'
-        issueTrackerUrl = 'https://github.com/renatoathaydes/jgrab/issues'
-        vcsUrl = 'https://github.com/renatoathaydes/jgrab.git'
-        githubRepo = 'renatoathaydes/jgrab'
-        githubReleaseNotesFile = 'README.MD'
-
-        //noinspection GroovyAssignabilityCheck
-        version {
-            name = project.version
-            vcsTag = project.version
-            gpg {
-                sign = true
-            }
-            mavenCentralSync {
-                sync = true
-                user = getProjectProperty 'ossrhUsername'
-                password = getProjectProperty 'ossrhPassword'
-                close = '1' // '0' to NOT close
-            }
-        }
+signing {
+    if ( project.hasProperty( 'sign' ) ) {
+        sign publishing.publications.mavenJava
     }
 }
-
-bintrayUpload.dependsOn build, sourcesJar, fatJar

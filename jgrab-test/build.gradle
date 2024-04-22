@@ -1,18 +1,21 @@
-apply plugin: 'java'
+plugins {
+    id 'java'
+}
 
-sourceCompatibility = 1.8
+sourceCompatibility = 11
+targetCompatibility = 11
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    runtime project( ':jgrab-runner' )
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    runtimeOnly project( ':jgrab-runner' )
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
 
 test {
-    def cp = configurations.testRuntime*.absolutePath.join( File.pathSeparator )
+    def cp = configurations.runtimeClasspath*.absolutePath.join( File.pathSeparator )
     systemProperty 'tests.classpath', cp
     testLogging {
         events "passed", "skipped", "failed", "standardOut", "standardError"
