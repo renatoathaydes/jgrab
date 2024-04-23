@@ -33,6 +33,8 @@ public class JGrabRunner {
 
     private static final Logger logger = LoggerFactory.getLogger( JGrabRunner.class );
 
+    private static final Grabber grabber = IvyGrabber.getInstance();
+
     public static final String SNIPPET_OPTION = "-e";
 
     private static JGrabOptions parseOptions( String[] args ) {
@@ -144,7 +146,7 @@ public class JGrabRunner {
         List<File> libs;
 
         if ( !toGrab.isEmpty() ) {
-            libs = IvyGrabber.getInstance().grab( toGrab );
+            libs = grabber.grab( toGrab );
         } else {
             libs = Collections.emptyList();
         }

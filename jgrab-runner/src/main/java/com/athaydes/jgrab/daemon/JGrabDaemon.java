@@ -4,6 +4,7 @@ import com.athaydes.jgrab.Dependency;
 import com.athaydes.jgrab.code.JavaCode;
 import com.athaydes.jgrab.code.StringJavaCode;
 import com.athaydes.jgrab.ivy.IvyGrabber;
+import com.athaydes.jgrab.runner.Grabber;
 import com.athaydes.jgrab.runner.JGrabRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,7 @@ public class JGrabDaemon {
     private static final String VERSION_OPTION = "--version";
 
     private static final PersistentCache libsCache = new PersistentCache();
+    private static final Grabber grabber = IvyGrabber.getInstance();
 
     private static final Pattern JAVA_ARGUMENTS_LINE = Pattern.compile( "\\[.+]" );
 
@@ -120,7 +122,7 @@ public class JGrabDaemon {
                     logger.debug( "Dependencies to grab: {}", deps );
 
                     List<File> libs = libsCache.libsFor( deps,
-                            () -> IvyGrabber.getInstance().grab( deps ) );
+                            () -> grabber.grab( deps ) );
 
                     System.setIn( clientSocket.getInputStream() );
                     System.setOut( out );
