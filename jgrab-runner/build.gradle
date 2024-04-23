@@ -20,7 +20,7 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
 
-task fatJar( type: Jar ) {
+tasks.register( 'fatJar', Jar ) {
     manifest {
         attributes 'Implementation-Title': 'JGrab',
                 'Implementation-Version': version,
@@ -36,7 +36,8 @@ test {
     systemProperty "org.slf4j.simpleLogger.defaultLogLevel", "debug"
 }
 
-task localInstall( type: Copy, dependsOn: 'fatJar' ) {
+tasks.register( 'localInstall', Copy ) {
+    dependsOn 'fatJar'
     from fatJar, {
         rename '.*', 'jgrab.jar'
     }

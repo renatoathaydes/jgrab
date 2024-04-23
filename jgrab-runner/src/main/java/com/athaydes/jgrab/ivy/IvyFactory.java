@@ -5,17 +5,13 @@ import org.apache.ivy.util.AbstractMessageLogger;
 import org.apache.ivy.util.Message;
 import org.apache.ivy.util.MessageLogger;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -115,7 +111,8 @@ class IvyFactory {
 
             try ( FileWriter writer = new FileWriter( tempSettings );
                   BufferedReader buffer = new BufferedReader(
-                          new InputStreamReader( getClass().getResourceAsStream( "/ivy-settings-template.xml" ) ) ) ) {
+                          new InputStreamReader( Objects.requireNonNull(
+                                  getClass().getResourceAsStream( "/ivy-settings-template.xml" ) ) ) ) ) {
 
                 buffer.lines().map( line -> {
                     if ( !repositoriesFound.get() ) {

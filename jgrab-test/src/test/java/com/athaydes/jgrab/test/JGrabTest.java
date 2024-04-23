@@ -6,10 +6,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 public class JGrabTest {
@@ -20,7 +22,9 @@ public class JGrabTest {
 
         String cp = System.getProperty( "tests.classpath" );
         System.out.println( "Test classpath: " + cp );
-        String runnableClass = getClass().getResource( "/RunnableClass.java" ).getFile();
+        String runnableClass = Objects.requireNonNull(
+                getClass().getResource( "/RunnableClass.java" )
+        ).getFile();
 
         Process process = new ProcessBuilder()
                 .command( java.getAbsolutePath(),
@@ -63,7 +67,7 @@ public class JGrabTest {
                 while ( ( bytesRead = input.read( buffer ) ) != -1 ) {
                     output.write( buffer, 0, bytesRead );
                 }
-                return output.toString( "UTF-8" );
+                return output.toString( UTF_8 );
             } catch ( IOException e ) {
                 return e.toString();
             }

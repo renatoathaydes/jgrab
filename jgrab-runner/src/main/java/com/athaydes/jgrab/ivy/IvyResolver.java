@@ -3,12 +3,9 @@ package com.athaydes.jgrab.ivy;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.report.ResolveReport;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.text.ParseException;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,7 +46,8 @@ class IvyResolver {
 
             try ( FileWriter writer = new FileWriter( tempModule );
                   BufferedReader buffer = new BufferedReader(
-                          new InputStreamReader( getClass().getResourceAsStream( "/ivy-module-template.xml" ) ) ) ) {
+                          new InputStreamReader( Objects.requireNonNull(
+                                  getClass().getResourceAsStream( "/ivy-module-template.xml" ) ) ) ) ) {
 
                 buffer.lines().map( it -> {
                     if ( !dependencyLineFound.get() ) {

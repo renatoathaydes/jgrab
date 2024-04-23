@@ -28,6 +28,7 @@ import java.util.jar.JarFile;
 /**
  * Runs a Java file, using the JGrab annotations to find its dependencies.
  */
+@SuppressWarnings( "CallToPrintStackTrace" )
 public class JGrabRunner {
 
     private static final Logger logger = LoggerFactory.getLogger( JGrabRunner.class );
@@ -62,11 +63,15 @@ public class JGrabRunner {
         return new JGrabOptions.JavaFile( new File( first ), rest );
     }
 
-    private static JGrabOptions error( String reason ) {
+    static void error( String reason ) {
         throw new JGrabError( reason + "\n\nUsage: jgrab (-e <java_source>) | java_file" );
     }
 
-    public static JGrabOptions version() {
+    public static void printVersion() {
+        version();
+    }
+
+    static JGrabOptions version() {
         URL jarUrl = JGrabRunner.class.getProtectionDomain().getCodeSource().getLocation();
         String version = "UNKNOWN";
 
@@ -119,11 +124,13 @@ public class JGrabRunner {
             run( new StringJavaCode( ( ( JGrabOptions.Snippet ) options ).code ), new String[ 0 ] );
         } else if ( options instanceof JGrabOptions.Daemon ) {
             JGrabDaemon.start( JGrabRunner::run );
-        } else if ( options instanceof JGrabOptions.None ) {
-            // nothing to do
-        } else {
-            error( "Unknown JGrab option: " + options );
-        }
+        } else
+            //noinspection StatementWithEmptyBody
+            if ( options instanceof JGrabOptions.None ) {
+                // nothing to do
+            } else {
+                error( "Unknown JGrab option: " + options );
+            }
     }
 
     private static void run( JavaCode javaCode, String[] args ) {
@@ -167,7 +174,7 @@ public class JGrabRunner {
         if ( snippet.endsWith( ";" ) ) {
             // user entered a statement, add a return statement after it if needed
             int index = snippet.lastIndexOf( '\n' );
-            String lastLine = index < 0 ? snippet : snippet.substring( index + 1, snippet.length() );
+            String lastLine = index < 0 ? snippet : snippet.substring( index + 1 );
 
             if ( !lastLine.contains( "return" ) ) {
                 snippet += "\nreturn null;";
@@ -183,7 +190,7 @@ public class JGrabRunner {
         try {
             Object result = callable.call();
             if ( result != null ) {
-                System.out.println( result.toString() );
+                System.out.println( result );
             }
         } catch ( Throwable t ) {
             System.err.println( "Problem running Java snippet: " + t );

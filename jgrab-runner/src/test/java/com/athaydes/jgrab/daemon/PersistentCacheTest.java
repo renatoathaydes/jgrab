@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,10 +16,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.Arrays.asList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class PersistentCacheTest {
 
@@ -32,7 +28,7 @@ public class PersistentCacheTest {
         File dep2 = new File( tempDir, "other-dep.jar" );
         File dep3 = new File( tempDir, "guava-20.0.jar" );
 
-        for (File file1 : Arrays.asList( dep1, dep2, dep3 )) {
+        for ( File file1 : List.of( dep1, dep2, dep3 ) ) {
             assertTrue( file1.createNewFile() );
         }
 
@@ -60,8 +56,8 @@ public class PersistentCacheTest {
         List<File> firstEntry = cache.libsFor( firstDeps, badSupplier );
         List<File> secondEntry = cache.libsFor( secondDeps, badSupplier );
 
-        assertEquals( asList( dep1, dep2 ), firstEntry );
-        assertEquals( asList( dep3 ), secondEntry );
+        assertEquals( List.of( dep1, dep2 ), firstEntry );
+        assertEquals( List.of( dep3 ), secondEntry );
     }
 
     @Test
@@ -72,7 +68,7 @@ public class PersistentCacheTest {
         File dep2 = new File( tempDir, "other-dep.jar" );
         File dep3 = new File( tempDir, "guava-20.0.jar" );
 
-        for (File file1 : Arrays.asList( dep1, dep2, dep3 )) {
+        for ( File file1 : List.of( dep1, dep2, dep3 ) ) {
             assertTrue( file1.createNewFile() );
         }
 
@@ -83,8 +79,8 @@ public class PersistentCacheTest {
         // create a cache with empty contents, non-existent file
         PersistentCache cache = new PersistentCache( file );
 
-        Supplier<List<File>> firstSupplier = () -> Arrays.asList( dep1, dep2 );
-        Supplier<List<File>> secondSupplier = () -> Arrays.asList( dep3 );
+        Supplier<List<File>> firstSupplier = () -> List.of( dep1, dep2 );
+        Supplier<List<File>> secondSupplier = () -> List.of( dep3 );
 
         Set<Dependency> firstDeps = asDependencies( Stream.of(
                 "some:valid-dep:1.0", "other-dep:name" ) );
@@ -95,8 +91,8 @@ public class PersistentCacheTest {
         List<File> secondEntry = cache.libsFor( secondDeps, secondSupplier );
 
         // the dependencies should be created and returned
-        assertEquals( asList( dep1, dep2 ), firstEntry );
-        assertEquals( asList( dep3 ), secondEntry );
+        assertEquals( List.of( dep1, dep2 ), firstEntry );
+        assertEquals( List.of( dep3 ), secondEntry );
 
         // saving the cache now, should write out the dependencies to the file
         cache.save();
