@@ -6,6 +6,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -13,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class JGrabTest {
 
@@ -25,6 +28,8 @@ public class JGrabTest {
         String runnableClass = Objects.requireNonNull(
                 getClass().getResource( "/RunnableClass.java" )
         ).getFile();
+
+        Instant startTime = Instant.now();
 
         Process process = new ProcessBuilder()
                 .command( java.getAbsolutePath(),
@@ -43,8 +48,15 @@ public class JGrabTest {
             throw new RuntimeException( "Process timeout" );
         }
 
-        System.out.println( "Process exited with value " + process.exitValue() );
-        System.out.println( errorOutput.get( 5, TimeUnit.SECONDS ) );
+        System.out.println( "Process exited with value " + process.exitValue()
+                + " in " + Duration.between( startTime, Instant.now() ).toMillis() + "ms" );
+
+        if ( process.exitValue() != 0 ) {
+            System.out.println( "===> Process stderr:\n" + errorOutput.get( 5, TimeUnit.SECONDS ) );
+            System.out.println( "===> Process stdout:\n" + output.get( 5, TimeUnit.SECONDS ) );
+            System.out.println( "----------------------------------" );
+            fail( "Process exited with code " + process.exitValue() );
+        }
 
         String processOutput = output.get( 5, TimeUnit.SECONDS );
 

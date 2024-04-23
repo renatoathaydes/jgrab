@@ -15,6 +15,7 @@ repositories {
 
 dependencies {
     implementation 'org.apache.ivy:ivy:2.4.0'
+    implementation 'com.athaydes.jbuild:jbuild:0.8.0'
     implementation 'com.athaydes.osgiaas:osgiaas-javac:0.7'
     implementation 'org.slf4j:slf4j-simple:1.7.21'
     testImplementation group: 'junit', name: 'junit', version: '4.12'

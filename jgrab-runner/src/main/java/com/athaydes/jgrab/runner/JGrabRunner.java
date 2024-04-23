@@ -5,7 +5,7 @@ import com.athaydes.jgrab.code.JavaCode;
 import com.athaydes.jgrab.code.StdinJavaCode;
 import com.athaydes.jgrab.code.StringJavaCode;
 import com.athaydes.jgrab.daemon.JGrabDaemon;
-import com.athaydes.jgrab.ivy.IvyGrabber;
+import com.athaydes.jgrab.jbuild.JBuildGrabber;
 import com.athaydes.osgiaas.api.env.ClassLoaderContext;
 import com.athaydes.osgiaas.javac.internal.DefaultClassLoaderContext;
 import com.athaydes.osgiaas.javac.internal.compiler.OsgiaasJavaCompilerService;
@@ -33,7 +33,9 @@ public class JGrabRunner {
 
     private static final Logger logger = LoggerFactory.getLogger( JGrabRunner.class );
 
-    private static final Grabber grabber = IvyGrabber.getInstance();
+    private static final Grabber grabber =
+            JBuildGrabber.INSTANCE;
+//    IvyGrabber.getInstance();
 
     public static final String SNIPPET_OPTION = "-e";
 
