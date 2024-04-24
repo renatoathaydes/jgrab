@@ -1,5 +1,6 @@
 package com.athaydes.jgrab;
 
+import java.util.Comparator;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -9,19 +10,23 @@ import java.util.stream.Stream;
 /**
  * A single dependency on an external module.
  */
-public class Dependency {
+public class Dependency implements Comparable<Dependency> {
 
     private static final Pattern JGRAB_PATTERN = Pattern.compile(
             "\\s*//\\s*#jgrab\\s+([a-zA-Z-_0-9:.]+)\\s*" );
 
+    public static final Comparator<Dependency> COMPARATOR = Comparator.comparing( Dependency::canonicalNotation );
+
     public final String group;
     public final String module;
     public final String version;
+    private final String canonicalNotation;
 
     private Dependency( String group, String module, String version ) {
         this.group = group;
         this.module = module;
         this.version = version;
+        canonicalNotation = group + ":" + module + ":" + version;
     }
 
     public static Dependency of( String declaration ) {
@@ -52,21 +57,21 @@ public class Dependency {
 
         Dependency that = ( Dependency ) other;
 
-        return group.equals( that.group ) &&
-                module.equals( that.module ) &&
-                version.equals( that.version );
+        return canonicalNotation.equals( that.canonicalNotation );
     }
 
     @Override
     public int hashCode() {
-        int result = group.hashCode();
-        result = 31 * result + module.hashCode();
-        result = 31 * result + version.hashCode();
-        return result;
+        return canonicalNotation.hashCode();
     }
 
     public String canonicalNotation() {
-        return group + ":" + module + ":" + version;
+        return canonicalNotation;
+    }
+
+    @Override
+    public int compareTo( Dependency other ) {
+        return COMPARATOR.compare( this, other );
     }
 
     @Override

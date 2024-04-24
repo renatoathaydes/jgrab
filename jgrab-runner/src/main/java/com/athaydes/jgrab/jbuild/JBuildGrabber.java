@@ -1,6 +1,7 @@
 package com.athaydes.jgrab.jbuild;
 
 import com.athaydes.jgrab.Dependency;
+import com.athaydes.jgrab.JGrabHome;
 import com.athaydes.jgrab.runner.Grabber;
 import com.athaydes.jgrab.runner.JGrabError;
 import jbuild.artifact.Artifact;
@@ -17,21 +18,29 @@ import jbuild.util.NonEmptyCollection;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.io.IOException;
-import java.nio.file.Files;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 import static jbuild.artifact.file.ArtifactFileWriter.WriteMode.FLAT_DIR;
 
 public class JBuildGrabber implements Grabber {
 
-    public static final JBuildGrabber INSTANCE = new JBuildGrabber();
+    public static final JBuildGrabber INSTANCE = new JBuildGrabber(
+            new File( JGrabHome.getDir(), "jbuild-cache" ) );
 
     private static final FilenameFilter JAR_FILTER = ( dir, name ) -> name.endsWith( ".jar" );
+
+    private final File cacheDir;
+
+    public JBuildGrabber( File cacheDir ) {
+        this.cacheDir = cacheDir;
+    }
 
     @Override
     public List<File> grab( Collection<Dependency> toGrab ) {
@@ -41,16 +50,22 @@ public class JBuildGrabber implements Grabber {
                 NonEmptyCollection.of( List.of(
                         new FileArtifactRetriever( MavenUtils.mavenHome() ),
                         new HttpArtifactRetriever( log, MavenUtils.MAVEN_CENTRAL_URL ) ) ) );
-        var tempDir = outputDir();
-        var writer = new ArtifactFileWriter( tempDir, FLAT_DIR );
+        var outputDir = outputDirHashOf( toGrab );
+
+        if ( outputDir.isDirectory() ) {
+            // the dir already exists, reuse that!
+            return jarsIn( outputDir );
+        }
+
+        var writer = new ArtifactFileWriter( outputDir, FLAT_DIR );
         var result = new InstallCommandExecutor( log, fetchCommand, writer )
                 .installDependencyTree( artifacts( toGrab ), EnumSet.of( Scope.RUNTIME ), false, true, Set.of(), true )
                 .toCompletableFuture();
         waitAndCheck( result );
-        return Arrays.stream( Objects.requireNonNull( tempDir.listFiles( JAR_FILTER ) ) ).collect( toList() );
+        return jarsIn( outputDir );
     }
 
-    private void waitAndCheck( CompletableFuture<Either<Long, NonEmptyCollection<Throwable>>> result ) {
+    private static void waitAndCheck( CompletableFuture<Either<Long, NonEmptyCollection<Throwable>>> result ) {
         try {
             result.get().map( ok -> null, JBuildGrabber::throwErrors );
         } catch ( InterruptedException | ExecutionException e ) {
@@ -58,19 +73,36 @@ public class JBuildGrabber implements Grabber {
         }
     }
 
+    private static List<File> jarsIn( File outputDir ) {
+        return Arrays.stream( Objects.requireNonNull( outputDir.listFiles( JAR_FILTER ) ) ).collect( toList() );
+    }
+
     private static Void throwErrors( NonEmptyCollection<Throwable> errors ) {
         throw new JGrabError( "Errors occurred while grabbing dependencies: " + errors );
     }
 
-    private static File outputDir() {
+    private File outputDirHashOf( Collection<Dependency> toGrab ) {
+        //noinspection ResultOfMethodCallIgnored
+        cacheDir.mkdirs();
+
+        var list = new ArrayList<>( toGrab );
+        list.sort( Dependency.COMPARATOR );
+
+        MessageDigest digest;
         try {
-            return Files.createTempDirectory( "jgrab-cache" ).toFile();
-        } catch ( IOException e ) {
-            throw new JGrabError( "Cannot create temp dir: " + e );
+            digest = MessageDigest.getInstance( "SHA-256" );
+        } catch ( NoSuchAlgorithmException e ) {
+            throw new RuntimeException( e );
         }
+        for ( var dependency : list ) {
+            digest.update( dependency.group.getBytes( UTF_8 ) );
+            digest.update( dependency.module.getBytes( UTF_8 ) );
+            digest.update( dependency.version.getBytes( UTF_8 ) );
+        }
+        return new File( cacheDir, Base64.getUrlEncoder().encodeToString( digest.digest() ) );
     }
 
-    private Set<? extends Artifact> artifacts( Collection<Dependency> toGrab ) {
+    private static Set<? extends Artifact> artifacts( Collection<Dependency> toGrab ) {
         return toGrab.stream()
                 .map( JBuildGrabber::depToArtifact )
                 .collect( Collectors.toSet() );

@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
@@ -29,9 +30,14 @@ public class JGrabTest {
                 getClass().getResource( "/RunnableClass.java" )
         ).getFile();
 
+        var tempDir = Files.createTempDirectory( JGrabTest.class.getName() );
+
         Instant startTime = Instant.now();
 
-        Process process = new ProcessBuilder()
+        var procBuilder = new ProcessBuilder();
+        procBuilder.environment().put( "JGRAB_HOME", tempDir.toString() );
+
+        var process = new ProcessBuilder()
                 .command( java.getAbsolutePath(),
                         "-cp", cp,
                         "com.athaydes.jgrab.runner.JGrabRunner",
