@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Stream;
 
 /**
@@ -49,7 +49,7 @@ public class StdinJavaCode implements JavaCode {
     }
 
     @Override
-    public Set<Dependency> extractDependencies() {
+    public SortedSet<Dependency> extractDependencies() {
         return Dependency.parseDependencies( Stream.of( lines ) );
     }
 

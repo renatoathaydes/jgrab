@@ -1,6 +1,6 @@
 package com.athaydes.jgrab.runner;
 
-import com.athaydes.jgrab.Dependency;
+import com.athaydes.jgrab.Classpath;
 import com.athaydes.jgrab.code.JavaCode;
 import com.athaydes.jgrab.code.StdinJavaCode;
 import com.athaydes.jgrab.code.StringJavaCode;
@@ -19,10 +19,10 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 
 /**
@@ -36,6 +36,8 @@ public class JGrabRunner {
     private static final Grabber grabber =
             JBuildGrabber.INSTANCE;
 //    IvyGrabber.getInstance();
+
+    private static final Map<String, ClassLoaderContext> classLoaderCache = new ConcurrentHashMap<>();
 
     public static final String SNIPPET_OPTION = "-e";
 
@@ -142,32 +144,45 @@ public class JGrabRunner {
 
         logger.debug( "JGrab using directory: {}", tempDir );
 
-        Set<Dependency> toGrab = javaCode.extractDependencies();
+        var toGrab = javaCode.extractDependencies();
         logger.debug( "Dependencies to grab: {}", toGrab );
 
-        List<File> libs;
+        Classpath classpath;
 
         if ( !toGrab.isEmpty() ) {
-            libs = grabber.grab( toGrab );
+            classpath = new Classpath( toGrab, grabber.grab( toGrab ) );
         } else {
-            libs = Collections.emptyList();
+            classpath = Classpath.empty();
         }
 
-        run( javaCode, args, libs );
+        run( javaCode, args, classpath );
     }
 
     private static void run( JavaCode javaCode,
                              String[] args,
-                             List<File> libs ) {
-        ClassLoaderContext classLoaderContext = libs.isEmpty() ?
-                DefaultClassLoaderContext.INSTANCE :
-                new JGrabClassLoaderContext( libs );
+                             Classpath classpath ) {
+        var classLoaderContext = classLoaderFor( classpath );
 
         if ( javaCode.isSnippet() ) {
             runJavaSnippet( javaCode.getCode(), classLoaderContext );
         } else {
             runJavaClass( javaCode, classLoaderContext, args );
         }
+    }
+
+    public static void populateClassLoaderCache( Collection<Classpath> classpaths ) {
+        logger.debug( "Populating ClassLoader cache with {} entries", classpaths.size() );
+        for ( Classpath classpath : classpaths ) {
+            classLoaderFor( classpath );
+        }
+    }
+
+    private static ClassLoaderContext classLoaderFor( Classpath classpath ) {
+        if ( classpath.isEmpty() ) {
+            return DefaultClassLoaderContext.INSTANCE;
+        }
+        return classLoaderCache.computeIfAbsent( classpath.hash, ignore ->
+                new JGrabClassLoaderContext( classpath.resolvedArtifacts ) );
     }
 
     private static void runJavaSnippet( String snippet, ClassLoaderContext classLoaderContext ) {

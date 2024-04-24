@@ -2,7 +2,7 @@ package com.athaydes.jgrab.code;
 
 import com.athaydes.jgrab.Dependency;
 
-import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Stream;
 
 /**
@@ -21,7 +21,7 @@ public class StringJavaCode implements JavaCode {
     }
 
     @Override
-    public Set<Dependency> extractDependencies() {
+    public SortedSet<Dependency> extractDependencies() {
         return Dependency.parseDependencies( Stream.of( codeLines ) );
     }
 

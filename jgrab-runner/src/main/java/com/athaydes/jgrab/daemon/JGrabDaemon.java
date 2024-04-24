@@ -1,6 +1,6 @@
 package com.athaydes.jgrab.daemon;
 
-import com.athaydes.jgrab.Dependency;
+import com.athaydes.jgrab.Classpath;
 import com.athaydes.jgrab.code.JavaCode;
 import com.athaydes.jgrab.code.StringJavaCode;
 import com.athaydes.jgrab.ivy.IvyGrabber;
@@ -9,11 +9,12 @@ import com.athaydes.jgrab.runner.JGrabRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.List;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -50,6 +51,8 @@ public class JGrabDaemon {
                 logger.error( "Unable to start JGrab daemon!", e );
                 return;
             }
+
+            JGrabRunner.populateClassLoaderCache( libsCache.loadCache().values() );
 
             while ( true ) {
                 try ( Socket clientSocket = serverSocket.accept();
@@ -117,12 +120,11 @@ public class JGrabDaemon {
 
                     logSourceCode( code );
 
-                    Set<Dependency> deps = code.extractDependencies();
+                    var deps = code.extractDependencies();
 
                     logger.debug( "Dependencies to grab: {}", deps );
 
-                    List<File> libs = libsCache.libsFor( deps,
-                            () -> grabber.grab( deps ) );
+                    var classpath = libsCache.classpathOf( deps, () -> grabber.grab( deps ) );
 
                     System.setIn( clientSocket.getInputStream() );
                     System.setOut( out );
@@ -130,7 +132,7 @@ public class JGrabDaemon {
 
                     // run this synchronously, which means only one program can run per daemon at a time
                     try {
-                        runArgs.accept( code, args, libs );
+                        runArgs.accept( code, args, classpath );
                     } catch ( Throwable t ) {
                         t.printStackTrace( out );
                     }
@@ -154,7 +156,7 @@ public class JGrabDaemon {
     public interface RunArgs {
         void accept( JavaCode javaCode,
                      String[] args,
-                     List<File> libs );
+                     Classpath classpath );
     }
 
 }

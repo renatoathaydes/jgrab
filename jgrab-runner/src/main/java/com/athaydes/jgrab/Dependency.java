@@ -42,7 +42,7 @@ public class Dependency implements Comparable<Dependency> {
         return new Dependency( parts[ 0 ], parts[ 1 ], parts.length == 2 ? "latest" : parts[ 2 ] );
     }
 
-    public static String hashOf( Collection<Dependency> dependencies ) {
+    public static String hashOf( SortedSet<Dependency> dependencies ) {
         var list = new ArrayList<>( dependencies );
         list.sort( COMPARATOR );
 
@@ -60,7 +60,7 @@ public class Dependency implements Comparable<Dependency> {
         return Base64.getUrlEncoder().encodeToString( digest.digest() );
     }
 
-    public static Set<Dependency> parseDependencies( Stream<String> codeLines ) {
+    public static SortedSet<Dependency> parseDependencies( Stream<String> codeLines ) {
         return codeLines.flatMap( line -> {
             Matcher matcher = JGRAB_PATTERN.matcher( line );
             if ( matcher.matches() ) {
@@ -68,7 +68,7 @@ public class Dependency implements Comparable<Dependency> {
             } else {
                 return Stream.empty();
             }
-        } ).collect( Collectors.toSet() );
+        } ).collect( Collectors.toCollection( TreeSet::new ) );
     }
 
     @Override

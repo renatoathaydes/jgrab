@@ -1,5 +1,6 @@
 package com.athaydes.jgrab.daemon;
 
+import com.athaydes.jgrab.Classpath;
 import com.athaydes.jgrab.Dependency;
 import com.athaydes.jgrab.JGrabHome;
 import org.slf4j.Logger;
@@ -20,13 +21,13 @@ import java.util.stream.Stream;
 /**
  * A persistent cache for resolved dependencies
  */
-class PersistentCache {
+final class PersistentCache {
 
     private static final Logger logger = LoggerFactory.getLogger( PersistentCache.class );
 
     private final File cacheFile;
     private final AtomicBoolean isCacheLoaded = new AtomicBoolean( false );
-    private final Map<Set<Dependency>, List<File>> cache = new HashMap<>();
+    private final Map<String, Classpath> cache = new HashMap<>();
 
     PersistentCache() {
         this( new File( JGrabHome.getDir(), "deps-cache" ) );
@@ -62,13 +63,11 @@ class PersistentCache {
         tempCacheFile.createNewFile();
 
         try ( BufferedWriter writer = Files.newBufferedWriter( tempCacheFile.toPath(), StandardOpenOption.WRITE ) ) {
-            for (Map.Entry<Set<Dependency>, List<File>> entry : cache.entrySet()) {
-                var dependencies = new ArrayList<>( entry.getKey() );
-                dependencies.sort( Dependency.COMPARATOR );
-                String deps = dependencies.stream()
+            for ( var classpath : cache.values() ) {
+                String deps = classpath.dependencies.stream()
                         .map( Dependency::canonicalNotation )
                         .collect( Collectors.joining( "," ) );
-                String libs = entry.getValue().stream()
+                String libs = classpath.resolvedArtifacts.stream()
                         .map( File::getAbsolutePath )
                         .collect( Collectors.joining( File.pathSeparator ) );
 
@@ -90,22 +89,25 @@ class PersistentCache {
         }
     }
 
-    List<File> libsFor( Set<Dependency> dependencies,
-                        Supplier<List<File>> compute ) {
+    Classpath classpathOf( SortedSet<Dependency> dependencies,
+                           Supplier<List<File>> compute ) {
         if ( dependencies.isEmpty() ) {
-            return Collections.emptyList();
+            return Classpath.empty();
         }
 
         if ( !isCacheLoaded.getAndSet( true ) ) {
             cache.putAll( loadCache() );
         }
 
-        return cache.computeIfAbsent( dependencies, ( ignore ) -> compute.get() );
+        return cache.computeIfAbsent( Dependency.hashOf( dependencies ), ( hash ) ->
+                new Classpath( dependencies, compute.get(), hash ) );
     }
 
-    Map<Set<Dependency>, List<File>> loadCache() {
-        logger.debug( "Initializing dependencies cache" );
-        return cacheFrom( loadCacheEntries() );
+    Map<String, Classpath> loadCache() {
+        logger.debug( "Loading dependencies cache" );
+        var result = cacheFrom( loadCacheEntries() );
+        isCacheLoaded.set( true );
+        return result;
     }
 
     private List<String> loadCacheEntries() {
@@ -126,16 +128,16 @@ class PersistentCache {
         return cacheEntries;
     }
 
-    private Map<Set<Dependency>, List<File>> cacheFrom( List<String> cacheEntries ) {
-        Map<Set<Dependency>, List<File>> cache = new HashMap<>();
+    private Map<String, Classpath> cacheFrom( List<String> cacheEntries ) {
+        Map<String, Classpath> cache = new HashMap<>();
 
-        for (String entry : cacheEntries) {
+        for ( String entry : cacheEntries ) {
             String[] parts = entry.split( " " );
             if ( parts.length == 2 ) {
                 try {
-                    Set<Dependency> deps = Stream.of( parts[ 0 ].split( "," ) )
+                    var deps = Stream.of( parts[ 0 ].split( "," ) )
                             .map( Dependency::of )
-                            .collect( Collectors.toSet() );
+                            .collect( Collectors.toCollection( TreeSet::new ) );
 
                     List<File> libs = Stream.of( parts[ 1 ].split( File.pathSeparator ) )
                             .map( File::new )
@@ -143,7 +145,7 @@ class PersistentCache {
 
                     if ( libs.stream().allMatch( File::isFile ) ) {
                         logger.debug( "Loading dependency entry from cache: {} -> {}", deps, libs );
-                        cache.put( deps, libs );
+                        cache.put( Dependency.hashOf( deps ), new Classpath( deps, libs ) );
                     } else {
                         logger.info( "Ignoring cache entry because not all lib files exist" );
                     }

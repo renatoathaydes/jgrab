@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Set;
+import java.util.SortedSet;
 import java.util.regex.Matcher;
 
 /**
@@ -43,7 +43,7 @@ class FileJavaCode implements JavaCode {
     }
 
     @Override
-    public Set<Dependency> extractDependencies() {
+    public SortedSet<Dependency> extractDependencies() {
         return Dependency.parseDependencies( lines.stream() );
     }
 

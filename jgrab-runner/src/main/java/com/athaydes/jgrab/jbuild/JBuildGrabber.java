@@ -47,7 +47,7 @@ public class JBuildGrabber implements Grabber {
                 NonEmptyCollection.of( List.of(
                         new FileArtifactRetriever( MavenUtils.mavenHome() ),
                         new HttpArtifactRetriever( log, MavenUtils.MAVEN_CENTRAL_URL ) ) ) );
-        var outputDir = outputDirHashOf( toGrab );
+        var outputDir = outputDirHashOf( new TreeSet<>( toGrab ) );
 
         if ( outputDir.isDirectory() ) {
             // the dir already exists, reuse that!
@@ -78,7 +78,7 @@ public class JBuildGrabber implements Grabber {
         throw new JGrabError( "Errors occurred while grabbing dependencies: " + errors );
     }
 
-    private File outputDirHashOf( Collection<Dependency> toGrab ) {
+    private File outputDirHashOf( SortedSet<Dependency> toGrab ) {
         //noinspection ResultOfMethodCallIgnored
         cacheDir.mkdirs();
 
