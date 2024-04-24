@@ -1,6 +1,7 @@
 package com.athaydes.jgrab.daemon;
 
 import com.athaydes.jgrab.Dependency;
+import com.athaydes.jgrab.JGrabHome;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,11 +11,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -27,23 +24,12 @@ class PersistentCache {
 
     private static final Logger logger = LoggerFactory.getLogger( PersistentCache.class );
 
-    private static final File JGRAB_HOME;
-
-    static {
-        String userHome = System.getProperty( "user.home" );
-        if ( userHome == null ) {
-            userHome = ".";
-        }
-
-        JGRAB_HOME = new File( userHome, ".jgrab" );
-    }
-
     private final File cacheFile;
     private final AtomicBoolean isCacheLoaded = new AtomicBoolean( false );
     private final Map<Set<Dependency>, List<File>> cache = new HashMap<>();
 
     PersistentCache() {
-        this( new File( JGRAB_HOME, "deps-cache" ) );
+        this( new File( JGrabHome.getDir(), "deps-cache" ) );
     }
 
     PersistentCache( File cacheFile ) {
@@ -77,7 +63,9 @@ class PersistentCache {
 
         try ( BufferedWriter writer = Files.newBufferedWriter( tempCacheFile.toPath(), StandardOpenOption.WRITE ) ) {
             for (Map.Entry<Set<Dependency>, List<File>> entry : cache.entrySet()) {
-                String deps = entry.getKey().stream()
+                var dependencies = new ArrayList<>( entry.getKey() );
+                dependencies.sort( Dependency.COMPARATOR );
+                String deps = dependencies.stream()
                         .map( Dependency::canonicalNotation )
                         .collect( Collectors.joining( "," ) );
                 String libs = entry.getValue().stream()
@@ -97,7 +85,7 @@ class PersistentCache {
             Files.move( tempCacheFile.toPath(), cacheFile.toPath() );
             logger.info( "Dependencies cache saved at {}", cacheFile );
         } else {
-            logger.warn( "Unable to save cache to {}. The file could not be re-created. Cache was save at {}",
+            logger.warn( "Unable to save cache to {}. The file could not be re-created. Cache was saved at {}",
                     cacheFile, tempCacheFile );
         }
     }

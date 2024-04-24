@@ -1,11 +1,14 @@
 package com.athaydes.jgrab;
 
-import java.util.Comparator;
-import java.util.Set;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * A single dependency on an external module.
@@ -37,6 +40,24 @@ public class Dependency implements Comparable<Dependency> {
         }
 
         return new Dependency( parts[ 0 ], parts[ 1 ], parts.length == 2 ? "latest" : parts[ 2 ] );
+    }
+
+    public static String hashOf( Collection<Dependency> dependencies ) {
+        var list = new ArrayList<>( dependencies );
+        list.sort( COMPARATOR );
+
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance( "SHA-256" );
+        } catch ( NoSuchAlgorithmException e ) {
+            throw new RuntimeException( e );
+        }
+        for ( var dependency : list ) {
+            digest.update( dependency.group.getBytes( UTF_8 ) );
+            digest.update( dependency.module.getBytes( UTF_8 ) );
+            digest.update( dependency.version.getBytes( UTF_8 ) );
+        }
+        return Base64.getUrlEncoder().encodeToString( digest.digest() );
     }
 
     public static Set<Dependency> parseDependencies( Stream<String> codeLines ) {

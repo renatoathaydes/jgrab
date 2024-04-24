@@ -18,14 +18,11 @@ import jbuild.util.NonEmptyCollection;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 import static jbuild.artifact.file.ArtifactFileWriter.WriteMode.FLAT_DIR;
 
@@ -85,21 +82,7 @@ public class JBuildGrabber implements Grabber {
         //noinspection ResultOfMethodCallIgnored
         cacheDir.mkdirs();
 
-        var list = new ArrayList<>( toGrab );
-        list.sort( Dependency.COMPARATOR );
-
-        MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance( "SHA-256" );
-        } catch ( NoSuchAlgorithmException e ) {
-            throw new RuntimeException( e );
-        }
-        for ( var dependency : list ) {
-            digest.update( dependency.group.getBytes( UTF_8 ) );
-            digest.update( dependency.module.getBytes( UTF_8 ) );
-            digest.update( dependency.version.getBytes( UTF_8 ) );
-        }
-        return new File( cacheDir, Base64.getUrlEncoder().encodeToString( digest.digest() ) );
+        return new File( cacheDir, Dependency.hashOf( toGrab ) );
     }
 
     private static Set<? extends Artifact> artifacts( Collection<Dependency> toGrab ) {
