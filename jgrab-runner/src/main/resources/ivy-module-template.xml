@@ -1,6 +1,0 @@
-<ivy-module version="2.0">
-    <info organisation="com.athaydes" module="ivy-command-module"/>
-    <dependencies>
-        ${DEPENDENCY}
-    </dependencies>
-</ivy-module>

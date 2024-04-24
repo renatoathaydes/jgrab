@@ -33,9 +33,7 @@ public class JGrabRunner {
 
     private static final Logger logger = LoggerFactory.getLogger( JGrabRunner.class );
 
-    private static final Grabber grabber =
-            JBuildGrabber.INSTANCE;
-//    IvyGrabber.getInstance();
+    private static final Grabber grabber = JBuildGrabber.INSTANCE;
 
     private static final Map<String, ClassLoaderContext> classLoaderCache = new ConcurrentHashMap<>();
 

@@ -12,8 +12,8 @@ based on the [JavaCompiler](https://docs.oracle.com/javase/7/docs/api/javax/tool
 ## Goals of this project
 
 - [x] to make it extremely easy and fast to run a single Java file or snippet.
-- [x] to allow the Java file to use any dependency without a build system by 
-  declaring dependencies directly in the source (Apache Ivy is used internally to download deps).
+- [x] to allow the Java file to use any dependency without a build system by
+  declaring dependencies directly in the source (JBuild is used internally to download deps).
 - [x] to provide a daemon that circumvents the JVM startup and warmup slowness. 
   This is why Rust is used for the jgrab-client.
 - [x] to make downloading and installing JGrab a one-command process.  

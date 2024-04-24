@@ -14,7 +14,6 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.apache.ivy:ivy:2.4.0'
     implementation 'com.athaydes.jbuild:jbuild:0.8.0'
     implementation 'com.athaydes.osgiaas:osgiaas-javac:0.7'
     implementation 'org.slf4j:slf4j-simple:1.7.21'
@@ -29,7 +28,7 @@ tasks.register( 'fatJar', Jar ) {
     }
     baseName = project.name
     classifier = 'fat-jar'
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree( it ) } }
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree( it ) } }
     with jar
 }
 

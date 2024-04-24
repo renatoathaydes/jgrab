@@ -3,7 +3,7 @@ package com.athaydes.jgrab.daemon;
 import com.athaydes.jgrab.Classpath;
 import com.athaydes.jgrab.code.JavaCode;
 import com.athaydes.jgrab.code.StringJavaCode;
-import com.athaydes.jgrab.ivy.IvyGrabber;
+import com.athaydes.jgrab.jbuild.JBuildGrabber;
 import com.athaydes.jgrab.runner.Grabber;
 import com.athaydes.jgrab.runner.JGrabRunner;
 import org.slf4j.Logger;
@@ -27,7 +27,7 @@ public class JGrabDaemon {
     private static final String VERSION_OPTION = "--version";
 
     private static final PersistentCache libsCache = new PersistentCache();
-    private static final Grabber grabber = IvyGrabber.getInstance();
+    private static final Grabber grabber = JBuildGrabber.INSTANCE;
 
     private static final Pattern JAVA_ARGUMENTS_LINE = Pattern.compile( "\\[.+]" );
 
