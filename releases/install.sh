@@ -10,7 +10,7 @@
 set -u
 
 JGRAB_BASE_URL="https://github.com/renatoathaydes/jgrab/releases/download"
-JGRAB_JAR_URL="https://jcenter.bintray.com/com/athaydes/jgrab/jgrab-runner/1.1.1/jgrab-runner-1.1.1-fat-jar.jar"
+JGRAB_JAR_URL="https://repo1.maven.org/maven2/com/athaydes/jgrab/jgrab-runner/1.1.1/jgrab-runner-1.1.1-fat-jar.jar"
 
 usage() {
     cat 1>&2 <<EOF

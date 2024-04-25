@@ -43,7 +43,7 @@ JGrab is installed in the `$HOME/.jgrab/` directory.
 
 > If for some reason you don't want to use `curl` to download and install JGrab,
   just download the JGrab Client from [GitHub](https://github.com/renatoathaydes/jgrab/releases),
-  and the Java jar from [JCenter](http://jcenter.bintray.com/com/athaydes/jgrab/jgrab-runner/).
+and the Java jar from [Maven Central](https://repo1.maven.org/maven2/com/athaydes/jgrab/jgrab-runner/).
 
 ### Running the native Rust client
 
