@@ -9,12 +9,14 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -67,11 +69,13 @@ public class JGrabTest {
         String processOutput = output.get( 5, TimeUnit.SECONDS );
 
         assertEquals( "error output: " + errorOutput.get( 1, TimeUnit.SECONDS ),
-                "Hello interface com.athaydes.osgiaas.cli.core.CommandRunner\n" +
-                        "Privyet interface com.athaydes.osgiaas.cli.CommandCompleter\n" +
-                        "Tja class com.athaydes.osgiaas.api.ansi.Ansi\n" +
-                        "Hi interface org.apache.felix.shell.Command\n" +
-                        "Ola class jline.console.ConsoleReader\n", processOutput );
+                List.of(
+                        "Hello interface com.athaydes.osgiaas.cli.core.CommandRunner",
+                        "Privyet interface com.athaydes.osgiaas.cli.CommandCompleter",
+                        "Tja class com.athaydes.osgiaas.api.ansi.Ansi",
+                        "Hi interface org.apache.felix.shell.Command",
+                        "Ola class jline.console.ConsoleReader" ),
+                processOutput.lines().collect( toList() ) );
     }
 
     private static Future<String> copyStream( InputStream input ) {
