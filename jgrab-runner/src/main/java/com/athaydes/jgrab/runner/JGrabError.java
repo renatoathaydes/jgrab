@@ -8,4 +8,8 @@ public class JGrabError extends RuntimeException {
     public JGrabError( String message ) {
         super( message );
     }
+
+    public JGrabError( Throwable cause ) {
+        super( cause );
+    }
 }

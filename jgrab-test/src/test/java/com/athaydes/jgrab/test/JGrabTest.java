@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import static com.athaydes.jgrab.test.JGrabTestRunner.jgrab;
 import static java.util.stream.Collectors.toList;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -32,7 +33,7 @@ public class JGrabTest {
                         "Ola class jline.console.ConsoleReader" ),
                 result.stdout.lines().collect( toList() ) );
 
-        assertEquals( result.stderr.trim(), "" );
+        assertEquals( "", result.stderr.trim() );
     }
 
     @Test
@@ -44,7 +45,7 @@ public class JGrabTest {
         assertEquals( "Result: " + result,
                 List.of( "5" ),
                 result.stdout.lines().collect( toList() ) );
-        assertEquals( result.stderr.trim(), "" );
+        assertEquals( "", result.stderr.trim() );
     }
 
     @Test
@@ -52,13 +53,25 @@ public class JGrabTest {
         var result = jgrab( "-v" );
         result.assertOk();
         assertThat( result.stdout, startsWith( "JGrab Version" ) );
-        assertEquals( result.stderr.trim(), "" );
+        assertEquals( "", result.stderr.trim() );
     }
 
     @Test
     public void unknownOption() throws Exception {
         var result = jgrab( "-f" );
         result.assertCode( 1 );
-        assertEquals( result.stderr.trim(), "Unknown option: -f" );
+        assertEquals( "[main] ERROR com.athaydes.jgrab.runner.JGrabRunner - " +
+                "Unknown option: -f", result.stderr.trim() );
+    }
+
+    @Test
+    public void codeCannotSeeJGrabClasses() throws Exception {
+        var result = jgrab( "-e", "com.athaydes.jgrab.runner.JGrabRunner.class" );
+        result.assertCode( 1 );
+        assertThat( result.stderr.trim(),
+                containsString(
+                        "java.lang.NoClassDefFoundError: " +
+                                "com/athaydes/jgrab/runner/JGrabRunner" ) );
+        assertEquals( "", result.stdout.trim() );
     }
 }

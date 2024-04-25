@@ -7,7 +7,6 @@ import com.athaydes.jgrab.code.StringJavaCode;
 import com.athaydes.jgrab.daemon.JGrabDaemon;
 import com.athaydes.jgrab.jbuild.JBuildGrabber;
 import com.athaydes.osgiaas.api.env.ClassLoaderContext;
-import com.athaydes.osgiaas.javac.internal.DefaultClassLoaderContext;
 import com.athaydes.osgiaas.javac.internal.compiler.OsgiaasJavaCompilerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,7 +119,7 @@ public class JGrabRunner {
 
     private static ClassLoaderContext classLoaderFor( Classpath classpath ) {
         if ( classpath.isEmpty() ) {
-            return DefaultClassLoaderContext.INSTANCE;
+            return EmptyClassLoaderContext.INSTANCE;
         }
         return classLoaderCache.computeIfAbsent( classpath.hash, ignore ->
                 new JGrabClassLoaderContext( classpath.resolvedArtifacts ) );
@@ -153,8 +152,7 @@ public class JGrabRunner {
                 System.out.println( result );
             }
         } catch ( Throwable t ) {
-            System.err.println( "Problem running Java snippet: " + t );
-            t.printStackTrace();
+            throw new JGrabError( t );
         }
     }
 
@@ -172,16 +170,14 @@ public class JGrabRunner {
                 Runnable runnable = ( Runnable ) compiledClass.getDeclaredConstructor().newInstance();
                 runnable.run();
             } catch ( Throwable t ) {
-                System.err.println( "Problem running Java class: " + t );
-                t.printStackTrace();
+                throw new JGrabError( t );
             }
         } else {
             try {
                 Method method = compiledClass.getMethod( "main", String[].class );
                 method.invoke( compiledClass, ( Object ) args );
             } catch ( Throwable t ) {
-                System.err.println( "Problem running Java class: " + t );
-                t.printStackTrace();
+                throw new JGrabError( t );
             }
         }
     }
@@ -201,11 +197,14 @@ public class JGrabRunner {
                 run( currentDir, options );
             }
         } catch ( JGrabError e ) {
-            System.err.println( e.getMessage() );
+            if ( e.getMessage() != null ) {
+                logger.error( "{}", e.getMessage() );
+            } else {
+                logger.error( "JGrab Error", e.getCause() );
+            }
             System.exit( 1 );
         } catch ( Exception e ) {
-            System.err.println( "Unable to run Java class due to " + e );
-            e.printStackTrace();
+            logger.error( "Unexpected Error", e );
             System.exit( 2 );
         }
     }

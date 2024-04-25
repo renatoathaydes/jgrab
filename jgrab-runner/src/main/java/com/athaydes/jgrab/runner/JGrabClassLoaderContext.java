@@ -7,11 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
@@ -30,7 +26,7 @@ class JGrabClassLoaderContext implements ClassLoaderContext {
         URL[] jarUrls = new URL[ dependencyJars.size() ];
         this.jars = new ArrayList<>( dependencyJars.size() );
 
-        for (int i = 0; i < dependencyJars.size(); i++) {
+        for ( int i = 0; i < dependencyJars.size(); i++ ) {
             File jar = dependencyJars.get( i );
 
             try {
@@ -41,7 +37,7 @@ class JGrabClassLoaderContext implements ClassLoaderContext {
             }
         }
 
-        this.dependenciesClassLoader = new URLClassLoader( jarUrls );
+        this.dependenciesClassLoader = new URLClassLoader( jarUrls, ClassLoader.getPlatformClassLoader() );
     }
 
     @Override
