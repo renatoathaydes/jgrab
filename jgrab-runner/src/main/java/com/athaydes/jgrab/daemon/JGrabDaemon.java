@@ -5,6 +5,7 @@ import com.athaydes.jgrab.code.JavaCode;
 import com.athaydes.jgrab.code.StringJavaCode;
 import com.athaydes.jgrab.jbuild.JBuildGrabber;
 import com.athaydes.jgrab.runner.Grabber;
+import com.athaydes.jgrab.runner.JGrabOptions;
 import com.athaydes.jgrab.runner.JGrabRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,8 +104,8 @@ public class JGrabDaemon {
                             continue;
                         }
 
-                        if ( input.startsWith( JGrabRunner.SNIPPET_OPTION ) ) {
-                            String snippet = input.substring( JGrabRunner.SNIPPET_OPTION.length() );
+                        if ( input.startsWith( JGrabOptions.SNIPPET_OPTION ) ) {
+                            String snippet = input.substring( JGrabOptions.SNIPPET_OPTION.length() );
                             if ( snippet.isEmpty() ) {
                                 out.println( "ERROR: no snippet provided to execute" );
                                 continue;

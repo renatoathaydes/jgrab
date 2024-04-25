@@ -37,45 +37,11 @@ public class JGrabRunner {
 
     private static final Map<String, ClassLoaderContext> classLoaderCache = new ConcurrentHashMap<>();
 
-    public static final String SNIPPET_OPTION = "-e";
-
-    private static JGrabOptions parseOptions( String[] args ) {
-        if ( args.length == 0 ) {
-            return new JGrabOptions.StdIn();
-        }
-        if ( args.length == 1 ) {
-            if ( args[ 0 ].equals( "--daemon" ) || args[ 0 ].equals( "-d" ) ) {
-                return new JGrabOptions.Daemon();
-            }
-            if ( args[ 0 ].equals( "--help" ) || args[ 0 ].equals( "-h" ) ) {
-                return help();
-            }
-            if ( args[ 0 ].equals( "--version" ) || args[ 0 ].equals( "-v" ) ) {
-                return version();
-            }
-        }
-
-        String first = args[ 0 ];
-        String[] rest = new String[ args.length - 1 ];
-        System.arraycopy( args, 1, rest, 0, rest.length );
-
-        if ( first.equals( SNIPPET_OPTION ) ) {
-            String script = String.join( " ", rest );
-            return new JGrabOptions.Snippet( script );
-        }
-
-        return new JGrabOptions.JavaFile( new File( first ), rest );
-    }
-
     static void error( String reason ) {
         throw new JGrabError( reason + "\n\nUsage: jgrab (-e <java_source>) | java_file" );
     }
 
     public static void printVersion() {
-        version();
-    }
-
-    static JGrabOptions version() {
         URL jarUrl = JGrabRunner.class.getProtectionDomain().getCodeSource().getLocation();
         String version = "UNKNOWN";
 
@@ -93,27 +59,6 @@ public class JGrabRunner {
 
         System.out.println( "JGrab Version: " + version );
         System.out.println( "Java Version: " + System.getProperty( "java.version" ) );
-
-        return new JGrabOptions.None();
-    }
-
-    private static JGrabOptions help() {
-        System.out.println( "=================== JGrab ===================\n" +
-                " - https://github.com/renatoathaydes/jgrab -\n" +
-                "=============================================\n" +
-                "Jgrab can execute Java code from stdin (if not given any argument),\n" +
-                "a Java file, or a Java snippet.\n\n" +
-                "Usage:\n" +
-                "  jgrab [<option> | java_file [java-args*] | -e java_snippet]\n" +
-                "Options:\n" +
-                "  --daemon -d\n" +
-                "    Starts up the JGrab daemon (used by the jgrab-client).\n" +
-                "  --help -h\n" +
-                "    Shows usage.\n" +
-                "  --version -v\n" +
-                "    Shows version information." );
-
-        return new JGrabOptions.None();
     }
 
     private static void run( String currentDir, JGrabOptions options ) throws Exception {
@@ -128,13 +73,11 @@ public class JGrabRunner {
             run( new StringJavaCode( ( ( JGrabOptions.Snippet ) options ).code ), new String[ 0 ] );
         } else if ( options instanceof JGrabOptions.Daemon ) {
             JGrabDaemon.start( JGrabRunner::run );
-        } else
-            //noinspection StatementWithEmptyBody
-            if ( options instanceof JGrabOptions.None ) {
-                // nothing to do
-            } else {
-                error( "Unknown JGrab option: " + options );
-            }
+        } else if ( options instanceof JGrabOptions.PrintVersion ) {
+            printVersion();
+        } else {
+            error( "Unknown JGrab option: " + options );
+        }
     }
 
     private static void run( JavaCode javaCode, String[] args ) {
@@ -253,13 +196,17 @@ public class JGrabRunner {
 
     private static void run( String currentDir, String[] args ) {
         try {
-            JGrabOptions options = parseOptions( args );
-            run( currentDir, options );
+            var options = JGrabOptions.parseOptions( args );
+            if ( options != null ) {
+                run( currentDir, options );
+            }
         } catch ( JGrabError e ) {
             System.err.println( e.getMessage() );
+            System.exit( 1 );
         } catch ( Exception e ) {
             System.err.println( "Unable to run Java class due to " + e );
             e.printStackTrace();
+            System.exit( 2 );
         }
     }
 
@@ -267,33 +214,4 @@ public class JGrabRunner {
         run( System.getProperty( "user.dir" ), args );
     }
 
-}
-
-abstract class JGrabOptions {
-    static class Snippet extends JGrabOptions {
-        final String code;
-
-        public Snippet( String code ) {
-            this.code = code;
-        }
-    }
-
-    static class JavaFile extends JGrabOptions {
-        final File file;
-        final String[] args;
-
-        public JavaFile( File file, String[] args ) {
-            this.file = file;
-            this.args = args;
-        }
-    }
-
-    static class StdIn extends JGrabOptions {
-    }
-
-    static class Daemon extends JGrabOptions {
-    }
-
-    static class None extends JGrabOptions {
-    }
 }
