@@ -45,18 +45,18 @@ Options:
 
 /// All possible sources of input for the JGrab Client
 enum Input {
-    FileInput(File),
-    StdinInput(Stdin),
-    TextInput(Cursor<String>),
-    Copy(Box<Read>)
+    FileIn(File),
+    StdinIn(Stdin),
+    TextIn(Cursor<String>),
+    Copy(Box<dyn Read>)
 }
 
 impl Read for Input {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         match *self {
-            FileInput(ref mut r) => r.read(buf),
-            StdinInput(ref mut r) => r.read(buf),
-            TextInput(ref mut r) => r.read(buf),
+            FileIn(ref mut r) => r.read(buf),
+            StdinIn(ref mut r) => r.read(buf),
+            TextIn(ref mut r) => r.read(buf),
             Copy(ref mut r) => r.read(buf)
         }
     }
@@ -67,9 +67,9 @@ fn main() {
 
     let input: Input;
 
-    if args.len() == 0 {
+    if args.is_empty() {
         // no args, pipe stdin
-        input = StdinInput(stdin());
+        input = StdinIn(stdin());
     } else if args.len() == 1 && !args[0].starts_with('-') {
         // there's one argument and it is not an option, so it must be a file
         input = file_input(&args[0]);
@@ -81,24 +81,24 @@ fn main() {
                 return
             }
             "--start" | "-t" => {
-                send_message_retrying(TextInput(Cursor::new("-e null".to_string())));
+                send_message_retrying(TextIn(Cursor::new("-e null".to_string())));
                 return
             }
             "--stop" | "-s" => {
-                if let Err(_) = connect() {
+                if connect().is_err() {
                     log("daemon is not running");
                     return
                 }
-                input = TextInput(Cursor::new("--stop".to_string()))
+                input = TextIn(Cursor::new("--stop".to_string()))
             }
             "--version" | "-v" => {
                 println!("JGrab Client Version: {}", VERSION);
                 show_daemon_version();
                 return
             }
-            "-e" => usage_error(&format!("-e option missing code snippet")),
+            "-e" => usage_error("-e option missing code snippet"),
             _ => {
-                usage_error(&format!("invalid option"));
+                usage_error("invalid option");
             }
         }
     } else {
@@ -122,21 +122,21 @@ fn main() {
 
 fn file_input(file_name: &String) -> Input {
     match File::open(file_name) {
-        Ok(file) => FileInput(file),
+        Ok(file) => FileIn(file),
         Err(err) => error(&format!("unable to read file: {}", err))
     }
 }
 
 fn create_message(args: &[String]) -> Input {
-    TextInput(Cursor::new(args.join(" ")))
+    TextIn(Cursor::new(args.join(" ")))
 }
 
 fn create_wrapped_message(prefix: &str, args: &[String], suffix: &str) -> Input {
-    TextInput(Cursor::new(prefix.to_string() + &args.join(" ") + suffix))
+    TextIn(Cursor::new(prefix.to_string() + &args.join(" ") + suffix))
 }
 
 fn send_message_retrying<R: Read>(mut reader: R) {
-    if let Some(_) = send_message(&mut reader, false) {
+    if send_message(&mut reader, false).is_some() {
         // failed to connect, try to start the daemon, then retry
         let mut retries = MAX_RETRIES;
 
@@ -182,7 +182,7 @@ fn send_message<R: Read>(reader: &mut R,
                         if n == 0 {
                             break;
                         } else {
-                            stream.write(&socket_message[0..n]).unwrap();
+                            stream.write_all(&socket_message[0..n]).unwrap();
                         }
                     }
                     Err(err) => error(&err.to_string())
@@ -199,7 +199,7 @@ fn send_message<R: Read>(reader: &mut R,
                         if n == 0 {
                             break;
                         } else {
-                            stdout().write(&client_buffer[0..n]).unwrap();
+                            stdout().write_all(&client_buffer[0..n]).unwrap();
                         }
                     }
                     Err(err) => error(&err.to_string())
@@ -259,7 +259,7 @@ fn check_status(child: &mut Child) {
 }
 
 fn show_daemon_version() {
-    if let Some(_) = send_message(&mut TextInput(Cursor::new("--version".to_string())), false) {
+    if send_message(&mut TextIn(Cursor::new("--version".to_string())), false).is_some() {
         println!("(Run the JGrab daemon to see its version)");
     }
 }
