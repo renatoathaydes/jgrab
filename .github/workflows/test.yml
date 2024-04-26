@@ -21,3 +21,6 @@ jobs:
         uses: mikepenz/action-junit-report@v2
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
+      - name: Build Rust Client
+        working-directory: ./jgrab-client
+        run: cargo build
