@@ -28,5 +28,5 @@ jobs:
         shell: bash
         run: |
           mkdir .jgrab
-          cp jgrab-runner/build/libs/jgrab.jar .jgrab/
-          jgrab-client/target/debug/jgrab-client -e "2 + 2"
+          cp ./jgrab-runner/build/libs/jgrab.jar ./.jgrab/jgrab.jar
+          ./jgrab-client/target/debug/jgrab-client -e "2 + 2"
