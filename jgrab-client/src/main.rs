@@ -1,3 +1,4 @@
+use dirs::home_dir;
 use std::env;
 use std::fs::File;
 use std::io::{stdin, stdout, Cursor, Error, Read, Result, Stdin, Write};
@@ -12,6 +13,7 @@ use std::time::Duration;
 use wait_timeout::ChildExt;
 use Input::*;
 
+extern crate dirs;
 extern crate wait_timeout;
 
 const MAX_RETRIES: usize = 5;
@@ -213,15 +215,24 @@ fn send_message<R: Read>(reader: &mut R, is_retry: bool) -> Option<Error> {
     }
 }
 
+fn find_jgrab_jar() -> PathBuf {
+    let jgrab_home = env::var("JGRAB_HOME");
+    let mut path: PathBuf = if let Ok(home) = jgrab_home {
+        home.into()
+    } else {
+        let mut path = home_dir()
+            .unwrap_or_else(|| env::current_dir().expect("must be able to access current dir!"));
+        path.push(".jgrab");
+        path
+    };
+    path.push("jgrab.jar");
+    path
+}
+
 fn start_daemon() -> Child {
     log("Starting daemon");
 
-    let user_home = env::home_dir()
-        .unwrap_or_else(|| env::current_dir().expect("must be able to access current dir!"));
-    let mut jgrab_jar: PathBuf = user_home;
-    jgrab_jar.push(".jgrab");
-    jgrab_jar.push("jgrab.jar");
-
+    let jgrab_jar: PathBuf = find_jgrab_jar();
     if jgrab_jar.as_path().is_file() {
         let cmd = Command::new("java")
             .arg("-jar")
@@ -237,6 +248,10 @@ fn start_daemon() -> Child {
             Err(err) => error(&err.to_string()),
         }
     } else {
+        log(&format!(
+            "JGrab jar does not exist: {}",
+            jgrab_jar.as_path().display()
+        ));
         error(
             "The JGrab jar is not installed! Please install it as explained \
                    in https://github.com/renatoathaydes/jgrab",

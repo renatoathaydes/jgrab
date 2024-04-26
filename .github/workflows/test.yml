@@ -27,6 +27,8 @@ jobs:
       - name: Smoke Test
         shell: bash
         run: |
-          mkdir .jgrab
-          cp ./jgrab-runner/build/libs/jgrab.jar ./.jgrab/jgrab.jar
+          export JGRAB_HOME="$(pwd)/.jgrab"
+          mkdir $JGRAB_HOME
+          cp ./jgrab-runner/build/libs/jgrab.jar $JGRAB_HOME/jgrab.jar
+          ls -al $JGRAB_HOME
           ./jgrab-client/target/debug/jgrab-client -e "2 + 2"
