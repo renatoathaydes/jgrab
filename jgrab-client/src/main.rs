@@ -1,12 +1,12 @@
-use std::net::{TcpStream, Shutdown};
-use std::io::{Stdin, stdin, stdout, Read, Write, Error, Result, Cursor};
-use std::fs::File;
 use std::env;
+use std::fs::File;
+use std::io::{stdin, stdout, Cursor, Error, Read, Result, Stdin, Write};
 use std::iter::Iterator;
-use std::str;
+use std::net::{Shutdown, TcpStream};
 use std::option::Option;
-use std::process::{Command, Child, exit};
 use std::path::PathBuf;
+use std::process::{exit, Child, Command};
+use std::str;
 use std::thread::sleep;
 use std::time::Duration;
 use wait_timeout::ChildExt;
@@ -48,7 +48,7 @@ enum Input {
     FileIn(File),
     StdinIn(Stdin),
     TextIn(Cursor<String>),
-    Copy(Box<dyn Read>)
+    Copy(Box<dyn Read>),
 }
 
 impl Read for Input {
@@ -57,7 +57,7 @@ impl Read for Input {
             FileIn(ref mut r) => r.read(buf),
             StdinIn(ref mut r) => r.read(buf),
             TextIn(ref mut r) => r.read(buf),
-            Copy(ref mut r) => r.read(buf)
+            Copy(ref mut r) => r.read(buf),
         }
     }
 }
@@ -78,23 +78,23 @@ fn main() {
         match args[0].trim() {
             "--help" | "-h" => {
                 println!("{}\n\n{}", JGRAB_INFO, JGRAB_USAGE);
-                return
+                return;
             }
             "--start" | "-t" => {
                 send_message_retrying(TextIn(Cursor::new("-e null".to_string())));
-                return
+                return;
             }
             "--stop" | "-s" => {
                 if connect().is_err() {
                     log("daemon is not running");
-                    return
+                    return;
                 }
                 input = TextIn(Cursor::new("--stop".to_string()))
             }
             "--version" | "-v" => {
                 println!("JGrab Client Version: {}", VERSION);
                 show_daemon_version();
-                return
+                return;
             }
             "-e" => usage_error("-e option missing code snippet"),
             _ => {
@@ -123,7 +123,7 @@ fn main() {
 fn file_input(file_name: &String) -> Input {
     match File::open(file_name) {
         Ok(file) => FileIn(file),
-        Err(err) => error(&format!("unable to read file: {}", err))
+        Err(err) => error(&format!("unable to read file: {}", err)),
     }
 }
 
@@ -151,13 +151,15 @@ fn send_message_retrying<R: Read>(mut reader: R) {
                 log(&format!("will re-try {} more times", &mut retries));
                 retries -= 1;
             } else {
-                break // success
+                break; // success
             }
         }
 
         if retries == 0 {
-            error("unable to start JGrab daemon. \
-                   Make sure JGrab's port [5002] is not already bound");
+            error(
+                "unable to start JGrab daemon. \
+                   Make sure JGrab's port [5002] is not already bound",
+            );
         }
     }
 }
@@ -166,8 +168,7 @@ fn connect() -> Result<TcpStream> {
     TcpStream::connect("127.0.0.1:5002")
 }
 
-fn send_message<R: Read>(reader: &mut R,
-                         is_retry: bool) -> Option<Error> {
+fn send_message<R: Read>(reader: &mut R, is_retry: bool) -> Option<Error> {
     match connect() {
         Ok(mut stream) => {
             if is_retry {
@@ -185,7 +186,7 @@ fn send_message<R: Read>(reader: &mut R,
                             stream.write_all(&socket_message[0..n]).unwrap();
                         }
                     }
-                    Err(err) => error(&err.to_string())
+                    Err(err) => error(&err.to_string()),
                 }
             }
 
@@ -202,44 +203,44 @@ fn send_message<R: Read>(reader: &mut R,
                             stdout().write_all(&client_buffer[0..n]).unwrap();
                         }
                     }
-                    Err(err) => error(&err.to_string())
+                    Err(err) => error(&err.to_string()),
                 }
             }
 
             Option::None
         }
-        Err(err) => Option::Some(err)
+        Err(err) => Option::Some(err),
     }
 }
 
 fn start_daemon() -> Child {
     log("Starting daemon");
 
-    if let Some(user_home) = env::home_dir() {
-        let mut jgrab_jar: PathBuf = user_home;
-        jgrab_jar.push(".jgrab");
-        jgrab_jar.push("jgrab.jar");
+    let user_home = env::home_dir()
+        .unwrap_or_else(|| env::current_dir().expect("must be able to access current dir!"));
+    let mut jgrab_jar: PathBuf = user_home;
+    jgrab_jar.push(".jgrab");
+    jgrab_jar.push("jgrab.jar");
 
-        if jgrab_jar.as_path().is_file() {
-            let cmd = Command::new("java")
-                .arg("-jar")
-                .arg(jgrab_jar.into_os_string().into_string().unwrap())
-                .arg("--daemon")
-                .spawn();
+    if jgrab_jar.as_path().is_file() {
+        let cmd = Command::new("java")
+            .arg("-jar")
+            .arg(jgrab_jar.into_os_string().into_string().unwrap())
+            .arg("--daemon")
+            .spawn();
 
-            match cmd {
-                Ok(child) => {
-                    log(&format!("Daemon started, pid={}", child.id()));
-                    child
-                }
-                Err(err) => error(&err.to_string())
+        match cmd {
+            Ok(child) => {
+                log(&format!("Daemon started, pid={}", child.id()));
+                child
             }
-        } else {
-            error("The JGrab jar is not installed! Please install it as explained \
-                   in https://github.com/renatoathaydes/jgrab");
+            Err(err) => error(&err.to_string()),
         }
     } else {
-        error("user.home could not be found, making it impossible to start the JGrab Daemon");
+        error(
+            "The JGrab jar is not installed! Please install it as explained \
+                   in https://github.com/renatoathaydes/jgrab",
+        );
     }
 }
 
@@ -248,13 +249,17 @@ fn check_status(child: &mut Child) {
 
     match child.wait_timeout(timeout) {
         Ok(Some(status)) => error(&format!(
-            "The JGrab daemon has died prematurely, {}", status)),
+            "The JGrab daemon has died prematurely, {}",
+            status
+        )),
         Ok(None) => {
             // give time for the socket server to become active
             sleep(Duration::from_secs(1));
         }
         Err(e) => error(&format!(
-            "unable to wait for JGrab daemon process status: {}", e)),
+            "unable to wait for JGrab daemon process status: {}",
+            e
+        )),
     }
 }
 
