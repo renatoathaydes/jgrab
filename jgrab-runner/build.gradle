@@ -26,8 +26,7 @@ tasks.register( 'fatJar', Jar ) {
                 'Implementation-Version': version,
                 'Main-Class': 'com.athaydes.jgrab.runner.JGrabRunner'
     }
-    baseName = project.name
-    classifier = 'fat-jar'
+    archiveFileName = 'jgrab.jar'
     from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree( it ) } }
     with jar
 }

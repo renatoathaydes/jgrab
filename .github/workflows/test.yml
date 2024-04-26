@@ -15,7 +15,7 @@ jobs:
           java-version: ${{ matrix.java }}
       - uses: eskatos/gradle-command-action@v1
         with:
-          arguments: check
+          arguments: check fatJar
       - name: Publish Test Report
         if: ${{ always() }}
         uses: mikepenz/action-junit-report@v2
@@ -24,3 +24,9 @@ jobs:
       - name: Build Rust Client
         working-directory: ./jgrab-client
         run: cargo build
+      - name: Smoke Test
+        shell: bash
+        run: |
+          mkdir .jgrab
+          cp jgrab-runner/build/libs/jgrab.jar .jgrab/
+          jgrab-client/target/debug/jgrab-client -e "2 + 2"
