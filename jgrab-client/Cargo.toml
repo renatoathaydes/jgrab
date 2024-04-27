@@ -1,12 +1,12 @@
 [package]
 
 name = "jgrab-client"
-version = "0.6.0"
+version = "1.0.0"
 authors = [ "Renato Athaydes" ]
 
 [dependencies]
 dirs = "5.0.1"
-wait-timeout = "0.1.5"
+wait-timeout = "0.2.0"
 
 [profile.release]
 

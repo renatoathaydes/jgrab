@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v[0-9]+.*
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/create-gh-release-action@v1
+        with:
+          changelog: CHANGELOG.MD
+          branch: master
+          draft: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  upload-assets:
+    needs: create-release
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            build-tool: cargo-zigbuild
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            build-tool: cargo-zigbuild
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            build-tool: cargo-zigbuild
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            build-tool: cargo-zigbuild
+          - target: x86_64-pc-windows-gnu
+            os: windows-latest
+            build-tool: cargo-zigbuild
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: goto-bus-stop/setup-zig@v2
+      - name: Install cargo-zigbuild
+        run: cargo install cargo-zigbuild
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          manifest-path: ./jgrab-client/Cargo.toml
+          bin: jgrab-client
+          target: ${{ matrix.target }}
+          build-tool: ${{ matrix.build-tool }}
+          token: ${{ secrets.GITHUB_TOKEN }}
