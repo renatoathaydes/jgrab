@@ -4,13 +4,13 @@
 # project's installer: https://rustup.rs/
 
 # This is just a little script that can be curled from the internet to
-# install JGrab. It just does platform detection, curls the JGrab client
-# executable and the Java daemon's jar.
+# install JGrab. It just does platform detection and curls the JGrab client
+# executable.
 
 set -u
 
 JGRAB_BASE_URL="https://github.com/renatoathaydes/jgrab/releases/download"
-JGRAB_JAR_URL="https://repo1.maven.org/maven2/com/athaydes/jgrab/jgrab-runner/1.1.1/jgrab-runner-1.1.1-fat-jar.jar"
+JGRAB_CLIENT_TAG="v2.0.0"
 
 usage() {
     cat 1>&2 <<EOF
@@ -56,12 +56,10 @@ main() {
             ;;
     esac
 
-    local _version="v0.6.0"
-    local _url="$JGRAB_BASE_URL/$_version/jgrab-client-$_version-$_arch$_zip_ext"
+    local _url="$JGRAB_BASE_URL/$JGRAB_CLIENT_TAG/jgrab-client-$JGRAB_CLIENT_TAG-$_arch$_zip_ext"
     
     local _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t jgrab)"
     local _client_file="$_dir/jgrab-client$_zip_ext"
-    local _jar_file="$_dir/jgrab.jar"
 
     local _ansi_escapes_are_valid=false
     if [ -t 2 ]; then
@@ -106,8 +104,6 @@ main() {
         printf '%s\n' 'info: downloading JGrab Java Daemon' 1>&2
     fi
 
-    ensure curl -sSfL "$JGRAB_JAR_URL" -o "$_jar_file"
-
     local _jgrab_home="$HOME/.jgrab"
 
     ignore mkdir "$_jgrab_home"
@@ -120,8 +116,6 @@ main() {
             ensure tar -xf "$_client_file" -C "$_jgrab_home"
             ;;
     esac
-
-    mv "$_jar_file" "$_jgrab_home"
 
     say "Installed JGrab at $_jgrab_home"
     say "Use the jgrab-client to run the native Rust client, or the jar to run JGrab only using Java:"
@@ -217,7 +211,7 @@ get_architecture() {
             ;;
 
         MINGW* | MSYS* | CYGWIN*)
-            local _ostype=pc-windows-gnu
+            local _ostype=pc-windows-msvc
             ;;
 
         *)
@@ -257,7 +251,7 @@ get_architecture() {
             fi
             ;;
 
-        aarch64)
+        aarch64 | arm64)
             local _cputype=aarch64
             ;;
 
