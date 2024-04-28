@@ -12,6 +12,8 @@ It also uses an in-memory compiler,
 [osgiaas-javac](https://github.com/renatoathaydes/osgiaas/blob/master/docs/lang/osgiaas-javac.md), which is
 based on the [JavaCompiler](https://docs.oracle.com/javase/7/docs/api/javax/tools/JavaCompiler.html) mechanism.
 
+❇️ Go to the [Getting Started](#getting-started-with-jgrab) section for installation instructions.
+
 ## Example usage
 
 Run a Java file or code snippet:
@@ -67,7 +69,7 @@ It starts a deamon, downloads the necessary dependencies and then compiles and r
 The next time you run a Java file with the same dependencies, it reuses the deamon and the cached dependencies:
 
 ```
-▶ jgrab UsesGuava.java
+▶ time jgrab UsesGuava.java
 coin=3
 glass=4
 pencil=1
