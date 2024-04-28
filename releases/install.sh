@@ -56,7 +56,7 @@ main() {
             ;;
     esac
 
-    local _url="$JGRAB_BASE_URL/$JGRAB_CLIENT_TAG/jgrab-client-$JGRAB_CLIENT_TAG-$_arch$_zip_ext"
+    local _url="$JGRAB_BASE_URL/$JGRAB_CLIENT_TAG/jgrab-client-$_arch$_zip_ext"
     
     local _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t jgrab)"
     local _client_file="$_dir/jgrab-client$_zip_ext"
