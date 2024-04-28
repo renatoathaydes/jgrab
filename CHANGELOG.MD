@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0-rc1] - 2024-04-27
+## [1.0.0] - 2024-04-28
 
 ### Changed
 
@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cache `ClassLoader` for resolve classpaths in memory.
 - No longer allow applications to access the JGrab's own `ClassLoader`.
 - Better parsing of CLI options and error reporting.
+- Embed JGrab jar in jgrab-client so binary is self-contained.
 
 ## [0.6.0] - 2017-05-16
 

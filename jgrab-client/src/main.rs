@@ -1,11 +1,11 @@
 use dirs::home_dir;
 use std::env;
-use std::fs::File;
+use std::fs::{create_dir_all, File};
 use std::io::{stdin, stdout, Cursor, Error, Read, Result, Stdin, Write};
 use std::iter::Iterator;
 use std::net::{Shutdown, TcpStream};
 use std::option::Option;
-use std::path::PathBuf;
+use std::path::{PathBuf, Display};
 use std::process::{exit, Child, Command};
 use std::str;
 use std::thread::sleep;
@@ -233,30 +233,40 @@ fn start_daemon() -> Child {
     log("Starting daemon");
 
     let jgrab_jar: PathBuf = find_jgrab_jar();
-    if jgrab_jar.as_path().is_file() {
-        let cmd = Command::new("java")
-            .arg("-jar")
-            .arg(jgrab_jar.into_os_string().into_string().unwrap())
-            .arg("--daemon")
-            .spawn();
-
-        match cmd {
-            Ok(child) => {
-                log(&format!("Daemon started, pid={}", child.id()));
-                child
-            }
-            Err(err) => error(&err.to_string()),
-        }
-    } else {
-        log(&format!(
-            "JGrab jar does not exist: {}",
-            jgrab_jar.as_path().display()
-        ));
-        error(
-            "The JGrab jar is not installed! Please install it as explained \
-                   in https://github.com/renatoathaydes/jgrab",
-        );
+    if !jgrab_jar.as_path().is_file() {
+        create_jgrab_jar(&jgrab_jar);
     }
+    let cmd = Command::new("java")
+        .arg("-jar")
+        .arg(to_string(&jgrab_jar).to_string())
+        .arg("--daemon")
+        .spawn();
+
+    match cmd {
+        Ok(child) => {
+            log(&format!("Daemon started, pid={}", child.id()));
+            child
+        }
+        Err(err) => error(&err.to_string()),
+    }
+}
+
+fn create_jgrab_jar(path: &PathBuf) {
+    if let Some(dir) = path.parent() {
+        let _ = create_dir_all(dir);
+    }
+    let buf = include_bytes!("../../jgrab-runner/build/libs/jgrab.jar");
+    match File::create(path) {
+        Ok(mut jar) => match jar.write_all(buf) {
+            Ok(_) => log(&format!("Created JGrab jar at: {}", to_string(path))),
+            Err(err) => error(&format!("Cannot write to jgrab jar path: {}", err)),
+        },
+        Err(err) => error(&format!("Cannot create jgrab jar: {}", err)),
+    }
+}
+
+fn to_string(path: &PathBuf) -> Display {
+    path.as_path().display()
 }
 
 fn check_status(child: &mut Child) {
