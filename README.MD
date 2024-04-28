@@ -5,18 +5,88 @@
 
 Runs Java code without a build system, grabbing dependencies declared in the Java file itself.
 
-To make it extremely fast to run Java code, JGrab employs a daemon which runs in the background, ready to run
+To make it fast to run Java code, JGrab employs a daemon which runs in the background, ready to run
 code once it is started up.
 
 It also uses an in-memory compiler, 
 [osgiaas-javac](https://github.com/renatoathaydes/osgiaas/blob/master/docs/lang/osgiaas-javac.md), which is
 based on the [JavaCompiler](https://docs.oracle.com/javase/7/docs/api/javax/tools/JavaCompiler.html) mechanism.
 
+## Example usage
+
+Run a Java file or code snippet:
+
+```shell
+# Run Java class
+▶ jgrab MyJavaCode.java
+
+# Run expression
+▶ jgrab -e 'java.lang.Math.pow(2, 3)'
+
+# Run statement (must end with semicolon)
+▶ jgrab -e 'System.out.println("Hello JGrab");'
+```
+
+The Java class must either have a main function or implement `Runnable`.
+
+Maven dependencies can be declared in the Java file itself
+using comments like `// #jgrab org:module:version`, as shown in this example:
+
+```java
+// #jgrab com.google.guava:guava:33.1.0-jre
+package example;
+
+import com.google.common.collect.ImmutableMap;
+
+public class UsesGuava {
+    public static void main(String[] args) {
+        var items = ImmutableMap.of("coin", 3, "glass", 4, "pencil", 1);
+        for (var fruit: items.entrySet()) {
+            System.out.println(fruit);
+        }
+    }
+}
+```
+
+Running the above for the first time should print the following:
+
+```
+▶ jgrab UsesGuava.java
+=== JGrab Client - Starting daemon ===
+=== JGrab Client - Daemon started, pid=78018 ===
+=== JGrab Client - Connected! ===
+coin=3
+glass=4
+pencil=1
+```
+
+It starts a deamon, downloads the necessary dependencies and then compiles and runs the Java file.
+
+> All dependencies are downloaded to `~/.jgrab/jbuild-cache/`.
+
+The next time you run a Java file with the same dependencies, it reuses the deamon and the cached dependencies:
+
+```
+▶ jgrab UsesGuava.java
+coin=3
+glass=4
+pencil=1
+jgrab UsesGuava.java   0.00s  user 0.01s system 5% cpu 0.179 total
+```
+
+To stop the deamon, run:
+
+```
+# -s stops the deamon, -t starts it. Use -h for help.
+▶ jgrab -s
+=== JGrab Daemon stopped ===
+```
+
 ## Goals of this project
 
 - [x] to make it extremely easy and fast to run a single Java file or snippet.
 - [x] to allow the Java file to use any dependency without a build system by
-  declaring dependencies directly in the source (JBuild is used internally to download deps).
+  declaring dependencies directly in the source ([JBuild](https://github.com/renatoathaydes/jbuild) is used internally to download deps).
 - [x] to provide a daemon that circumvents the JVM startup and warmup slowness. 
   This is why Rust is used for the jgrab-client.
 - [x] to make downloading and installing JGrab a one-command process.  
@@ -33,112 +103,74 @@ It is **NOT a goal** of this project:
 
 ## Getting Started with JGrab
 
-Install JGrab:
+To get JGrab, run the following command:
 
 ```
-> curl https://raw.githubusercontent.com/renatoathaydes/jgrab/master/releases/install.sh -sSf | sh
+▶ curl https://raw.githubusercontent.com/renatoathaydes/jgrab/master/releases/install.sh -sSf | sh
 ```
 
-JGrab is installed in the `$HOME/.jgrab/` directory.
+This will download and unpack the JGrab archive into `$HOME/.jgrab/`.
 
-> If for some reason you don't want to use `curl` to download and install JGrab,
-  just download the JGrab Client from [GitHub](https://github.com/renatoathaydes/jgrab/releases),
-and the Java jar from [Maven Central](https://repo1.maven.org/maven2/com/athaydes/jgrab/jgrab-runner/).
+> To change JGrab's home directory, set the `JGRAB_HOME` env var to another directory.
 
-### Running the native Rust client
+Alternatively, download JGrab from the [Releases](https://github.com/renatoathaydes/jgrab/releases) page.
 
-Run the [Rust](https://www.rust-lang.org/) client with:
+Install it somewhere in your `PATH` by linking it, for example:
 
-```
-> ~/.jgrab/jgrab-client --help
+```shell
+▶ sudo ln -s ~/.jgrab/jgrab-client /usr/local/bin/jgrab
 ```
 
-To make it easier to run JGrab in Linux/Mac, for example, you can add a link to it as shown below:
+Make sure it's working:
 
 ```
-> sudo ln -s $HOME/.jgrab/jgrab-client /usr/local/bin/jgrab
-```
-
-Now, you should be able to run the `jgrab` command from anywhere:
-
-```
-> jgrab -e 2 + 2
+▶ jgrab -e '2 + 2'
+=== JGrab Client - Starting daemon ===
+=== JGrab Client - Created JGrab jar at: /Users/renato/.jgrab/jgrab.jar ===
+=== JGrab Client - Daemon started, pid=79341 ===
+=== JGrab Client - Connected! ===
 4
 ```
 
+The daemon starts first time you run some code, or when you run `jgrab -t`.
+
+While JGrab's daemon is running, it can run Java code much faster.
+
+To stop the daemon, run `jgrab -s`.
+
+### Uninstalling
+
+To uninstall JGrab, delete its home directory:
+
+```shell
+▶ rm -rf ~/.jgrab
+```
+
+Also delete any symlinks or shell aliases you may have created.
+
 ### Running JGrab with just `java`
 
-If you don't care too much about speed, you can run JGrab directly with `java`, without a daemon
-(it still runs small programs in the order of one or two hundred milliseconds in modern laptops).
+If you don't care too much about speed, or you have trouble using the daemon (e.g. you need access to `stdin`),
+you can run JGrab directly with `java`:
 
 ```
-> java -jar ~/.jgrab/jgrab.jar --help
+▶ java -jar ~/.jgrab/jgrab.jar --help
 ```
+
+> If the jar doesn't exist, run any Java code with jgrab first. That will create the JGrab jar
+> at `~/.jgrab/jgrab.jar` (it is extracted from the executable itself).
 
 If your shell supports aliases, add an alias like the following, so that you can 
 just type `jgrab <args>` to run JGrab, similarly to the jgrab-client:
 
 ```
-> alias jgrab='java -jar $HOME/.jgrab/jgrab.jar $@'
+▶ alias jgrab='java -jar $HOME/.jgrab/jgrab.jar $@'
 ```
 
 Now, this should work:
 
 ```
-jgrab -e 'System.out.println("Hello world!");'
-```
-
-## General Usage
-
-### JGrab Client
-
-> Note: The Rust client currently expects the jgrab jar to be located at
-  `$HOME/.jgrab/jgrab.jar`.
-  See the previous section for information on how to install JGrab.
-
-```
-=============== JGrab Client ================
- - https://github.com/renatoathaydes/jgrab -
-=============================================
-Jgrab can execute Java code from stdin (if not given any argument),
-a Java file, or a Java snippet.
-
-This is the native JGrab Client, written in Rust!
-
-A Java daemon is started the first time the JGrab Client is run so
-that subsequent runs are much faster.
-
-Usage:
-  jgrab [<option> | java_file [java-args*] | -e java_snippet]
-Options:
-  --stop -s
-    Stops the JGrab daemon.
-  --start -t
-    Starts the JGrab daemon (if not yet running).
-  --help -h
-    Shows usage.
-  --version -v
-    Shows version information.
-```
-
-### JGrab Jar
-
-```
-=================== JGrab ===================
- - https://github.com/renatoathaydes/jgrab -
-=============================================
-Jgrab can execute Java code from stdin (if not given any argument),
-a Java file, or a Java snippet.
-
-Usage:
-  jgrab [<option> | java_file [java-args*] | -e java_snippet]
-Options:
-  --daemon -d
-    Starts up the JGrab daemon (used by the jgrab-client).
-  --help -h
-    Shows usage.
-  --version -v
-    Shows version information.
+▶ jgrab -e 'System.out.println("Hello world!");'
 ```
 
 ### Running Java classes
@@ -162,7 +194,7 @@ To run this file with JGrab, just pass the file name to it as an argument:
   The package, however, does not matter, so any package can be declared regardless of the file location.
 
 ``` 
-> jgrab Hello.java
+▶ jgrab Hello.java
 Hello JGrab
 ```
 
@@ -173,10 +205,10 @@ JGrab can also run simple Java code snippets using the `-e` option:
 ```
 # expressions (anything that returns a value)
 # must not be terminated with ';'
-> jgrab -e 2 + 2
+▶ jgrab -e 2 + 2
 4
 # statements MUST be terminated with ';'
-> jgrab -e 'System.out.println("Hello JGrab");'
+▶ jgrab -e 'System.out.println("Hello JGrab");'
 Hello JGrab
 ```
 
@@ -189,7 +221,7 @@ JGrab reads from stdin if not given any arguments.
 This allows piping to work seamlessly:
 
 ```
-> cat Hello.java | jgrab
+▶ cat Hello.java | jgrab
 Hello JGrab
 ```
 
@@ -216,7 +248,7 @@ public class UsesGuava {
 ```
 
 The first time you run this class, it will download Guava if necessary before compiling and running it,
-so it may take a while.
+so it may take a few seconds.
 
 However, it will run very fast after that! 
 
@@ -227,7 +259,7 @@ However, it will run very fast after that!
 To enable JGrab logging, start the Java daemon using the following command:
 
 ```
-java -Dorg.slf4j.simpleLogger.defaultLogLevel=debug -jar ~/.jgrab/jgrab.jar -d
+▶ java -Dorg.slf4j.simpleLogger.defaultLogLevel=debug -jar ~/.jgrab/jgrab.jar -d
 ```
 
 From another shell, just use JGrab normally. The daemon process will log pretty much everything it does.
@@ -242,7 +274,7 @@ sources you will run added to the IDE's build path.
 You can start the JGrab daemon with the Java debugger enabled on port 5005 with the following command: 
 
 ```
-java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -jar ~/.jgrab/jgrab.jar --daemon
+▶ java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -jar ~/.jgrab/jgrab.jar --daemon
 ```
 
 To attach the debugger to this process from IntelliJ:
