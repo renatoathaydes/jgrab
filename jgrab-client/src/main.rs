@@ -5,7 +5,7 @@ use std::io::{stdin, stdout, Cursor, Error, Read, Result, Stdin, Write};
 use std::iter::Iterator;
 use std::net::{Shutdown, TcpStream};
 use std::option::Option;
-use std::path::{PathBuf, Display};
+use std::path::PathBuf;
 use std::process::{exit, Child, Command};
 use std::str;
 use std::thread::sleep;
@@ -233,12 +233,12 @@ fn start_daemon() -> Child {
     log("Starting daemon");
 
     let jgrab_jar: PathBuf = find_jgrab_jar();
-    if !jgrab_jar.as_path().is_file() {
+    if !jgrab_jar.is_file() {
         create_jgrab_jar(&jgrab_jar);
     }
     let cmd = Command::new("java")
         .arg("-jar")
-        .arg(to_string(&jgrab_jar).to_string())
+        .arg(&jgrab_jar)
         .arg("--daemon")
         .spawn();
 
@@ -258,15 +258,11 @@ fn create_jgrab_jar(path: &PathBuf) {
     let buf = include_bytes!("../../jgrab-runner/build/libs/jgrab.jar");
     match File::create(path) {
         Ok(mut jar) => match jar.write_all(buf) {
-            Ok(_) => log(&format!("Created JGrab jar at: {}", to_string(path))),
+            Ok(_) => log(&format!("Created JGrab jar at: {}", path.display())),
             Err(err) => error(&format!("Cannot write to jgrab jar path: {}", err)),
         },
         Err(err) => error(&format!("Cannot create jgrab jar: {}", err)),
     }
-}
-
-fn to_string(path: &PathBuf) -> Display {
-    path.as_path().display()
 }
 
 fn check_status(child: &mut Child) {
