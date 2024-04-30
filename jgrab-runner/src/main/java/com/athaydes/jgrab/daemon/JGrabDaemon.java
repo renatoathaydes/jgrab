@@ -16,6 +16,8 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
@@ -33,13 +35,21 @@ public final class JGrabDaemon {
     private static final Pattern JAVA_ARGUMENTS_LINE = Pattern.compile( "\\[.+]" );
 
     static {
-        Runtime.getRuntime().addShutdownHook( new Thread( () -> {
-            try {
-                libsCache.save();
-            } catch ( IOException e ) {
-                logger.warn( "Failed to save dependencies cache", e );
-            }
-        } ) );
+        Runtime.getRuntime().addShutdownHook( new Thread( JGrabDaemon::saveCache ) );
+        var executor = Executors.newSingleThreadScheduledExecutor( ( runnable ) -> {
+            var thread = new Thread( runnable, "jgrab-cache-saver" );
+            thread.setDaemon( true );
+            return thread;
+        } );
+        executor.scheduleAtFixedRate( JGrabDaemon::saveCache, 1, 1, TimeUnit.HOURS );
+    }
+
+    private static void saveCache() {
+        try {
+            libsCache.save();
+        } catch ( IOException e ) {
+            logger.warn( "Failed to save dependencies cache", e );
+        }
     }
 
     @SuppressWarnings( "resource" )
@@ -132,6 +142,7 @@ public final class JGrabDaemon {
             if ( input.equals( STOP_OPTION ) ) {
                 logger.info( "--stop option received, stopping JGrab Daemon" );
                 out.println( "=== JGrab Daemon stopped ===" );
+                System.exit( 0 );
                 return null;
             }
 

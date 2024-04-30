@@ -27,6 +27,7 @@ final class PersistentCache {
 
     private final File cacheFile;
     private final AtomicBoolean isCacheLoaded = new AtomicBoolean( false );
+    private final AtomicBoolean hasChanged = new AtomicBoolean( false );
     private final Map<String, Classpath> cache = new HashMap<>();
 
     PersistentCache() {
@@ -40,6 +41,10 @@ final class PersistentCache {
     void save() throws IOException {
         if ( !isCacheLoaded.get() ) {
             logger.debug( "The cache was not loaded, will not save the current cache" );
+            return;
+        }
+        if ( !hasChanged.get() ) {
+            logger.debug( "The cache will not be saved as it has not changed since last save" );
             return;
         }
 
@@ -83,6 +88,7 @@ final class PersistentCache {
         if ( canMove ) {
             Files.move( tempCacheFile.toPath(), cacheFile.toPath() );
             logger.info( "Dependencies cache saved at {}", cacheFile );
+            hasChanged.set( false );
         } else {
             logger.warn( "Unable to save cache to {}. The file could not be re-created. Cache was saved at {}",
                     cacheFile, tempCacheFile );
@@ -99,8 +105,10 @@ final class PersistentCache {
             cache.putAll( loadCache() );
         }
 
-        return cache.computeIfAbsent( Dependency.hashOf( dependencies ), ( hash ) ->
-                new Classpath( dependencies, compute.get(), hash ) );
+        return cache.computeIfAbsent( Dependency.hashOf( dependencies ), ( hash ) -> {
+            hasChanged.set( true );
+            return new Classpath( dependencies, compute.get(), hash );
+        } );
     }
 
     Map<String, Classpath> loadCache() {
