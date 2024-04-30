@@ -1,11 +1,11 @@
 use dirs::home_dir;
 use std::env;
-use std::fs::{create_dir_all, File};
+use std::fs::{create_dir_all, read_to_string, File};
 use std::io::{stdin, stdout, Cursor, Error, Read, Result, Stdin, Write};
 use std::iter::Iterator;
 use std::net::{Shutdown, TcpStream};
 use std::option::Option;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{exit, Child, Command};
 use std::str;
 use std::thread::sleep;
@@ -67,6 +67,10 @@ impl Read for Input {
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
 
+    let jgrab_home = find_jgrab_home();
+    let token_path = token_path(&jgrab_home);
+    let jar_path = jar_path(&jgrab_home);
+
     let input: Input;
 
     if args.is_empty() {
@@ -83,7 +87,11 @@ fn main() {
                 return;
             }
             "--start" | "-t" => {
-                send_message_retrying(TextIn(Cursor::new("-e null".to_string())));
+                send_message_retrying(
+                    TextIn(Cursor::new("-e null".to_string())),
+                    &token_path,
+                    &jar_path,
+                );
                 return;
             }
             "--stop" | "-s" => {
@@ -95,7 +103,7 @@ fn main() {
             }
             "--version" | "-v" => {
                 println!("JGrab Client Version: {}", VERSION);
-                show_daemon_version();
+                show_daemon_version(&token_path);
                 return;
             }
             "-e" => usage_error("-e option missing code snippet"),
@@ -119,7 +127,7 @@ fn main() {
         }
     }
 
-    send_message_retrying(input);
+    send_message_retrying(input, &token_path, &jar_path);
 }
 
 fn file_input(file_name: &String) -> Input {
@@ -137,16 +145,28 @@ fn create_wrapped_message(prefix: &str, args: &[String], suffix: &str) -> Input 
     TextIn(Cursor::new(prefix.to_string() + &args.join(" ") + suffix))
 }
 
-fn send_message_retrying<R: Read>(mut reader: R) {
-    if send_message(&mut reader, false).is_some() {
+fn token_path(home: &Path) -> PathBuf {
+    let mut path = home.to_path_buf();
+    path.push("token");
+    path
+}
+
+fn jar_path(home: &Path) -> PathBuf {
+    let mut path = home.to_path_buf();
+    path.push("jgrab.jar");
+    path
+}
+
+fn send_message_retrying<R: Read>(mut reader: R, token_path: &Path, jar_path: &Path) {
+    if send_message(&mut reader, false, token_path).is_some() {
         // failed to connect, try to start the daemon, then retry
         let mut retries = MAX_RETRIES;
 
-        let mut child = start_daemon();
+        let mut child = start_daemon(jar_path);
         check_status(&mut child);
 
         while retries > 0 {
-            if let Some(err) = send_message(&mut reader, true) {
+            if let Some(err) = send_message(&mut reader, true, token_path) {
                 check_status(&mut child);
 
                 log(&format!("unable to connect to JGrab daemon: {}", err));
@@ -170,14 +190,22 @@ fn connect() -> Result<TcpStream> {
     TcpStream::connect("127.0.0.1:5002")
 }
 
-fn send_message<R: Read>(reader: &mut R, is_retry: bool) -> Option<Error> {
+fn send_message<R: Read>(reader: &mut R, is_retry: bool, token_path: &Path) -> Option<Error> {
     match connect() {
         Ok(mut stream) => {
             if is_retry {
                 log("Connected!");
             }
 
-            let mut socket_message = [0u8; 1024];
+            match read_to_string(token_path) {
+                Ok(token) => {
+                    stream.write_all(token.as_bytes()).unwrap();
+                    let _ = stream.write(&[b'\n']).unwrap();
+                }
+                Err(err) => return Some(err),
+            };
+
+            let mut socket_message = [0u8; 4096];
 
             loop {
                 match reader.read(&mut socket_message) {
@@ -215,30 +243,26 @@ fn send_message<R: Read>(reader: &mut R, is_retry: bool) -> Option<Error> {
     }
 }
 
-fn find_jgrab_jar() -> PathBuf {
+fn find_jgrab_home() -> PathBuf {
     let jgrab_home = env::var("JGRAB_HOME");
-    let mut path: PathBuf = if let Ok(home) = jgrab_home {
+    if let Ok(home) = jgrab_home {
         home.into()
     } else {
         let mut path = home_dir()
             .unwrap_or_else(|| env::current_dir().expect("must be able to access current dir!"));
         path.push(".jgrab");
         path
-    };
-    path.push("jgrab.jar");
-    path
+    }
 }
 
-fn start_daemon() -> Child {
+fn start_daemon(jgrab_jar: &Path) -> Child {
     log("Starting daemon");
-
-    let jgrab_jar: PathBuf = find_jgrab_jar();
     if !jgrab_jar.is_file() {
-        create_jgrab_jar(&jgrab_jar);
+        create_jgrab_jar(jgrab_jar);
     }
     let cmd = Command::new("java")
         .arg("-jar")
-        .arg(&jgrab_jar)
+        .arg(jgrab_jar)
         .arg("--daemon")
         .spawn();
 
@@ -251,7 +275,7 @@ fn start_daemon() -> Child {
     }
 }
 
-fn create_jgrab_jar(path: &PathBuf) {
+fn create_jgrab_jar(path: &Path) {
     if let Some(dir) = path.parent() {
         let _ = create_dir_all(dir);
     }
@@ -284,8 +308,14 @@ fn check_status(child: &mut Child) {
     }
 }
 
-fn show_daemon_version() {
-    if send_message(&mut TextIn(Cursor::new("--version".to_string())), false).is_some() {
+fn show_daemon_version(token_path: &Path) {
+    if send_message(
+        &mut TextIn(Cursor::new("--version".to_string())),
+        false,
+        token_path,
+    )
+    .is_some()
+    {
         println!("(Run the JGrab daemon to see its version)");
     }
 }

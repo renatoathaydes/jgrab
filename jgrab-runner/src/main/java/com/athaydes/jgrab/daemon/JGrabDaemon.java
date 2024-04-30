@@ -52,7 +52,6 @@ public final class JGrabDaemon {
         }
     }
 
-    @SuppressWarnings( "resource" )
     public static void start( RunArgs runArgs ) {
         new Thread( () -> {
             logger.debug( "Starting JGrab Daemon" );
@@ -66,17 +65,29 @@ public final class JGrabDaemon {
 
             JGrabRunner.populateClassLoaderCache( libsCache.loadCache().values() );
 
+            String token;
+            try {
+                token = Authorizer.generateRandomToken();
+            } catch ( IOException e ) {
+                logger.error( "Unable to create file for authorization token" );
+                System.exit( 1 );
+                return;
+            }
+
             while ( true ) {
                 try ( Socket clientSocket = serverSocket.accept();
                       final PrintStream out = new PrintStream( clientSocket.getOutputStream(), true );
                       BufferedReader in = new BufferedReader(
                               new InputStreamReader( clientSocket.getInputStream() ) ) ) {
-                    handleClient( in, out, runArgs );
+                    if ( token.equals( in.readLine() ) ) {
+                        handleClient( in, out, runArgs );
+                    } else {
+                        logger.info( "Rejecting client as it did not present the current token" );
+                        out.println( "=== JGrab authorization error ===" );
+                        clientSocket.close();
+                    }
                 } catch ( IOException e ) {
                     logger.warn( "Problem handling client message", e );
-                } finally {
-                    System.setOut( System.out );
-                    System.setErr( System.err );
                 }
             }
         }, "jgrab-daemon" ).start();
@@ -105,6 +116,9 @@ public final class JGrabDaemon {
             runArgs.accept( request.code, request.args, classpath );
         } catch ( Throwable t ) {
             t.printStackTrace( out );
+        } finally {
+            System.setOut( System.out );
+            System.setErr( System.err );
         }
     }
 
