@@ -27,7 +27,6 @@ import java.util.jar.JarFile;
 /**
  * Runs a Java file, using the JGrab annotations to find its dependencies.
  */
-@SuppressWarnings( "CallToPrintStackTrace" )
 public class JGrabRunner {
 
     private static final Logger logger = LoggerFactory.getLogger( JGrabRunner.class );
@@ -56,7 +55,7 @@ public class JGrabRunner {
             logger.error( "Cannot access JGrab jar file to check version: " + e );
         }
 
-        System.out.println( "JGrab Version: " + version );
+        System.out.println( "JGrab Runner Version: " + version );
         System.out.println( "Java Version: " + System.getProperty( "java.version" ) );
     }
 

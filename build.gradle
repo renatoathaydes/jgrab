@@ -2,46 +2,21 @@ import java.util.regex.Pattern
 
 allprojects {
     group = 'com.athaydes.jgrab'
-    version = '2.0.0'
+    version = '2.1.0'
 }
 
-tasks.register( 'localRelease' ) {
-    dependsOn ':jgrab-runner:localInstall'
-    def findJGrabClientVersion = { ->
-        def inPackageSection = false
-        def versionPattern = Pattern.compile( /\s*version\s*=\s*"(.+)"\s*/ )
-        def version = 'UNKNOWN'
-        file( 'jgrab-client/Cargo.toml' ).readLines().find { line ->
-            if ( inPackageSection ) {
-                def matcher = line =~ versionPattern
-                if ( matcher.matches() ) {
-                    version = matcher.group( 1 )
-                    return true // stop searching
-                }
-            } else if ( line == '[package]' ) {
-                inPackageSection = true
-            }
-            false
-        }
-        return version
-    }
+tasks.register( 'cargoBuild', Exec ) {
+    dependsOn ':jgrab-runner:fatJar'
+    workingDir file( 'jgrab-client' )
+    commandLine 'cargo', 'build', '--release'
+}
 
-    doLast {
-        def clientVersion = findJGrabClientVersion()
-        exec {
-            workingDir file( 'jgrab-client' )
-            commandLine 'cargo', 'build', '--release'
-        }
-        exec {
-            workingDir file( 'jgrab-client' )
-            commandLine 'strip', 'target/release/jgrab-client'
-        }
-        copy {
-            from file( 'jgrab-client/target/release/jgrab-client' )
-            into file( 'releases' )
-            rename '.*', "jgrab-client-${clientVersion}"
-        }
+tasks.register( 'testJGrabClient', Exec ) {
+    dependsOn 'cargoBuild'
+    workingDir file( 'jgrab-client' )
+    commandLine './test.sh'
+}
 
-        println "Local Release of JGrab $version and Client $clientVersion complete."
-    }
+tasks.register( 'build' ) {
+    dependsOn ':jgrab-runner:fatJar', 'cargoBuild', 'testJGrabClient'
 }

@@ -287,3 +287,28 @@ To attach the debugger to this process from IntelliJ:
  
 The IntelliJ debugger should stop on all breakpoints marked in the Java file you ran.
 
+## Building
+
+Run the following command to build and test both the Java runner and the Rust client:
+
+```shell
+./gradlew build
+```
+
+To build only the Java code:
+
+```shell
+./gradlew fatJar
+```
+
+To build only the Rust client (requires the Java code to be built first):
+
+```shell
+cd jgrab-client
+cargo build
+```
+
+Requirements:
+
+* Java 11+
+* Cargo

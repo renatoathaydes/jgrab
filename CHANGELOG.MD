@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [2.1.0] - 2024-05-01
+
 - require token to accept requests in daemon.
 - save dependencies cache periodically (1 hour intervals).
+- better handling of errors and daemon management.
 
 ## [2.0.0] - 2024-04-28
 

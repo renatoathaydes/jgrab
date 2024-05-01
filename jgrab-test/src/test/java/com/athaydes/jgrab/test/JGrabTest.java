@@ -52,7 +52,7 @@ public class JGrabTest {
     public void runVersion() throws Exception {
         var result = jgrab( "-v" );
         result.assertOk();
-        assertThat( result.stdout, startsWith( "JGrab Version" ) );
+        assertThat( result.stdout, startsWith( "JGrab Runner Version" ) );
         assertEquals( "", result.stderr.trim() );
     }
 
