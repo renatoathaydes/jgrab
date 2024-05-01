@@ -73,36 +73,58 @@ public final class JGrabDaemon {
                 System.exit( 1 );
                 return;
             }
-
-            while ( true ) {
+            var running = true;
+            while ( running ) {
                 try ( Socket clientSocket = serverSocket.accept();
                       final PrintStream out = new PrintStream( clientSocket.getOutputStream(), true );
                       BufferedReader in = new BufferedReader(
                               new InputStreamReader( clientSocket.getInputStream() ) ) ) {
+                    // the first line sent must be the current token
                     if ( token.equals( in.readLine() ) ) {
-                        handleClient( in, out, runArgs );
+                        running = handleClient( in, out, runArgs );
                     } else {
                         logger.info( "Rejecting client as it did not present the current token" );
                         out.println( "=== JGrab authorization error ===" );
-                        clientSocket.close();
+                        running = false;
                     }
                 } catch ( IOException e ) {
                     logger.warn( "Problem handling client message", e );
                 }
             }
+            logger.info( "Stopped JGrab daemon" );
+            try {
+                // sleep a bit to allow the client to receive the response without errors
+                Thread.sleep( 100 );
+                serverSocket.close();
+            } catch ( IOException e ) {
+                logger.debug( "Exception closing server", e );
+            } catch ( InterruptedException e ) {
+                logger.trace( "Interrupted while closing server" );
+            }
         }, "jgrab-daemon" ).start();
     }
 
-    private static void handleClient(
+    /**
+     * Handle the client synchronously.
+     *
+     * @param in      client input
+     * @param out     client output
+     * @param runArgs args
+     * @return true to continue, false to stop accepting connections
+     * @throws IOException on IO errors
+     */
+    private static boolean handleClient(
             BufferedReader in,
             PrintStream out,
             RunArgs runArgs ) throws IOException {
         var request = parseRequest( in, out );
-        if ( request == null ) return;
+        if ( request == StatelessRequest.DO_NOTHING ) return true;
+        if ( request == StatelessRequest.DIE ) return false;
+        var codeRequest = ( CodeRunRequest ) request;
 
-        logSourceCode( request.code );
+        logSourceCode( codeRequest.code );
 
-        var deps = request.code.extractDependencies();
+        var deps = codeRequest.code.extractDependencies();
 
         logger.debug( "Dependencies to grab: {}", deps );
 
@@ -113,16 +135,18 @@ public final class JGrabDaemon {
 
         // run this synchronously, which means only one program can run per daemon at a time
         try {
-            runArgs.accept( request.code, request.args, classpath );
+            runArgs.accept( codeRequest.code, codeRequest.args, classpath );
         } catch ( Throwable t ) {
             t.printStackTrace( out );
         } finally {
             System.setOut( System.out );
             System.setErr( System.err );
         }
+
+        return true;
     }
 
-    private static CodeRunRequest parseRequest( BufferedReader in, PrintStream out ) throws IOException {
+    private static Request parseRequest( BufferedReader in, PrintStream out ) throws IOException {
         String firstLine = null;
         String inputLine;
         StringBuilder messageBuilder = new StringBuilder( 1024 );
@@ -137,7 +161,7 @@ public final class JGrabDaemon {
 
         if ( firstLine == null ) {
             out.println( "Communication error (input line is null)" );
-            return null;
+            return StatelessRequest.DO_NOTHING;
         }
 
         JavaCode code;
@@ -156,8 +180,7 @@ public final class JGrabDaemon {
             if ( input.equals( STOP_OPTION ) ) {
                 logger.info( "--stop option received, stopping JGrab Daemon" );
                 out.println( "=== JGrab Daemon stopped ===" );
-                System.exit( 0 );
-                return null;
+                return StatelessRequest.DIE;
             }
 
             if ( input.equals( VERSION_OPTION ) ) {
@@ -165,14 +188,14 @@ public final class JGrabDaemon {
                 System.setOut( out );
                 System.setErr( out );
                 JGrabRunner.printVersion();
-                return null;
+                return StatelessRequest.DO_NOTHING;
             }
 
             if ( input.startsWith( JGrabOptions.SNIPPET_OPTION ) ) {
                 String snippet = input.substring( JGrabOptions.SNIPPET_OPTION.length() );
                 if ( snippet.isEmpty() ) {
                     out.println( "ERROR: no snippet provided to execute" );
-                    return null;
+                    return StatelessRequest.DO_NOTHING;
                 } else {
                     code = new StringJavaCode( snippet );
                     args = new String[ 0 ];
@@ -183,16 +206,6 @@ public final class JGrabDaemon {
             }
         }
         return new CodeRunRequest( code, args );
-    }
-
-    private static final class CodeRunRequest {
-        public final JavaCode code;
-        public final String[] args;
-
-        public CodeRunRequest( JavaCode code, String[] args ) {
-            this.code = code;
-            this.args = args;
-        }
     }
 
     private static void logSourceCode( Object source ) {

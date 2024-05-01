@@ -1,20 +1,22 @@
-use dirs::home_dir;
+extern crate dirs;
+extern crate wait_timeout;
+
 use std::env;
-use std::fs::{create_dir_all, read_to_string, File};
-use std::io::{stdin, stdout, Cursor, Error, Read, Result, Stdin, Write};
+use std::fs::{create_dir_all, File, read_to_string};
+use std::io::{Cursor, Error, Read, Result, stdin, Stdin, stdout, Write};
 use std::iter::Iterator;
 use std::net::{Shutdown, TcpStream};
 use std::option::Option;
 use std::path::{Path, PathBuf};
-use std::process::{exit, Child, Command};
+use std::process::{Child, Command, exit};
 use std::str;
 use std::thread::sleep;
 use std::time::Duration;
-use wait_timeout::ChildExt;
-use Input::*;
 
-extern crate dirs;
-extern crate wait_timeout;
+use dirs::home_dir;
+use wait_timeout::ChildExt;
+
+use Input::*;
 
 const MAX_RETRIES: usize = 5;
 
@@ -72,6 +74,7 @@ fn main() {
     let jar_path = jar_path(&jgrab_home);
 
     let input: Input;
+    let mut ignore_read_error = false;
 
     if args.is_empty() {
         // no args, pipe stdin
@@ -87,18 +90,14 @@ fn main() {
                 return;
             }
             "--start" | "-t" => {
-                send_message_retrying(
-                    TextIn(Cursor::new("-e null".to_string())),
-                    &token_path,
-                    &jar_path,
-                );
-                return;
+                input = TextIn(Cursor::new("-e null".to_string()))
             }
             "--stop" | "-s" => {
                 if connect().is_err() {
                     log("daemon is not running");
                     return;
                 }
+                ignore_read_error = true;
                 input = TextIn(Cursor::new("--stop".to_string()))
             }
             "--version" | "-v" => {
@@ -127,7 +126,7 @@ fn main() {
         }
     }
 
-    send_message_retrying(input, &token_path, &jar_path);
+    send_message_retrying(input, &token_path, &jar_path, ignore_read_error);
 }
 
 fn file_input(file_name: &String) -> Input {
@@ -157,8 +156,12 @@ fn jar_path(home: &Path) -> PathBuf {
     path
 }
 
-fn send_message_retrying<R: Read>(mut reader: R, token_path: &Path, jar_path: &Path) {
-    if send_message(&mut reader, false, token_path).is_some() {
+fn send_message_retrying<R: Read>(
+    mut reader: R,
+    token_path: &Path,
+    jar_path: &Path,
+    ignore_read_error: bool) {
+    if send_message(&mut reader, false, token_path, ignore_read_error).is_some() {
         // failed to connect, try to start the daemon, then retry
         let mut retries = MAX_RETRIES;
 
@@ -166,7 +169,7 @@ fn send_message_retrying<R: Read>(mut reader: R, token_path: &Path, jar_path: &P
         check_status(&mut child);
 
         while retries > 0 {
-            if let Some(err) = send_message(&mut reader, true, token_path) {
+            if let Some(err) = send_message(&mut reader, true, token_path, ignore_read_error) {
                 check_status(&mut child);
 
                 log(&format!("unable to connect to JGrab daemon: {}", err));
@@ -190,7 +193,11 @@ fn connect() -> Result<TcpStream> {
     TcpStream::connect("127.0.0.1:5002")
 }
 
-fn send_message<R: Read>(reader: &mut R, is_retry: bool, token_path: &Path) -> Option<Error> {
+fn send_message<R: Read>(
+    reader: &mut R,
+    is_retry: bool,
+    token_path: &Path,
+    ignore_read_error: bool) -> Option<Error> {
     match connect() {
         Ok(mut stream) => {
             if is_retry {
@@ -199,8 +206,8 @@ fn send_message<R: Read>(reader: &mut R, is_retry: bool, token_path: &Path) -> O
 
             match read_to_string(token_path) {
                 Ok(token) => {
-                    stream.write_all(token.as_bytes()).unwrap();
-                    let _ = stream.write(&[b'\n']).unwrap();
+                    stream.write_all(token.as_bytes()).expect("socket write error (token)");
+                    stream.write_all(&[b'\n']).expect("socket write error (newline)");
                 }
                 Err(err) => return Some(err),
             };
@@ -213,16 +220,20 @@ fn send_message<R: Read>(reader: &mut R, is_retry: bool, token_path: &Path) -> O
                         if n == 0 {
                             break;
                         } else {
-                            stream.write_all(&socket_message[0..n]).unwrap();
+                            stream.write_all(&socket_message[0..n])
+                                .expect("socket write error (message)");
                         }
                     }
                     Err(err) => error(&err.to_string()),
                 }
             }
 
-            stream.shutdown(Shutdown::Write).unwrap();
+            stream.shutdown(Shutdown::Write).expect("shutdown socket write");
 
             let mut client_buffer = socket_message;
+
+            let stdout = stdout();
+            let mut lock = stdout.lock();
 
             loop {
                 match stream.read(&mut client_buffer) {
@@ -230,16 +241,17 @@ fn send_message<R: Read>(reader: &mut R, is_retry: bool, token_path: &Path) -> O
                         if n == 0 {
                             break;
                         } else {
-                            stdout().write_all(&client_buffer[0..n]).unwrap();
+                            lock.write_all(&client_buffer[0..n]).expect("stdout write error");
                         }
                     }
+                    Err(_) if ignore_read_error => break,
                     Err(err) => error(&err.to_string()),
                 }
             }
 
-            Option::None
+            None
         }
-        Err(err) => Option::Some(err),
+        Err(err) => Some(err),
     }
 }
 
@@ -313,9 +325,8 @@ fn show_daemon_version(token_path: &Path) {
         &mut TextIn(Cursor::new("--version".to_string())),
         false,
         token_path,
-    )
-    .is_some()
-    {
+        false,
+    ).is_some() {
         println!("(Run the JGrab daemon to see its version)");
     }
 }

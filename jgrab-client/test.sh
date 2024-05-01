@@ -3,11 +3,18 @@
 set -e
 
 DIR=$(dirname "$0")
+F=$(basename "$0")
 export JGRAB_HOME="$DIR/.jgrab"
 mkdir "$JGRAB_HOME"
 cp "$DIR"/../jgrab-runner/build/libs/jgrab.jar "$JGRAB_HOME"/jgrab.jar
 ls -al "$JGRAB_HOME"
 jgrab="$DIR"/target/debug/jgrab-client
+
+trap 'catch $? $LINENO' ERR
+catch() {
+  echo "Error code: $1 on $F:$2"
+  rm -r "$JGRAB_HOME" || true
+}
 
 # start the daemon
 $jgrab -t
@@ -24,6 +31,4 @@ fi
 
 # cleanup
 $jgrab -s
-
-# on Windows, this may fail
 rm -r "$JGRAB_HOME" || true
