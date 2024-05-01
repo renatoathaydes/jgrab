@@ -1,7 +1,7 @@
 # JGrab
 
 [![Actions Status](https://github.com/renatoathaydes/jgrab/workflows/Build%20And%20Test%20on%20All%20OSs/badge.svg)](https://github.com/renatoathaydes/jgrab/actions)
-[![Maven Central](https://img.shields.io/maven-central/v/com.athaydes.jgrab/jgrab-runner.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/com.athaydes.jgrab/jgrab-runner)
+[![Maven Central](https://img.shields.io/maven-central/v/com.athaydes.jgrab/jgrab.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/com.athaydes.jgrab/jgrab)
 
 Runs Java code without a build system, grabbing dependencies declared in the Java file itself.
 

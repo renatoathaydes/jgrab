@@ -1,5 +1,3 @@
-import java.util.regex.Pattern
-
 allprojects {
     group = 'com.athaydes.jgrab'
     version = '2.1.0'
